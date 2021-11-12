@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        
+        <title>Nyssvääjä</title>
+        
+        <script src="https://static.lehtodigital.fi/common/lib/jquery.min.js"></script>
+        <script src="https://static.lehtodigital.fi/common/lib/popper.min.js"></script>
+        <script src="https://static.lehtodigital.fi/common/bootstrap-4/bootstrap.min.js"></script>
+        
+        <script src="nyssvaaja.js"></script>
+        
+        <link rel="stylesheet" type="text/css" href="https://static.lehtodigital.fi/common/bootstrap-4/bootstrap.min.css">
+        <link rel="stylesheet" type="text/css" href="nyssvaaja.css">
+        
+    </head>
+    <body>
+        
+        <div data-view="select" style="display: none;">
+            <div class="container mt-4">
+                
+                <div class="row justify-content-center">
+                    <div class="col-sm-12 col-md-10 col-lg-6 col-xl-4">
+                
+                    <h3>🚍️ Nyssetarkistin</h3>
+                    <p class="mb-1">Tämä on helppo ja nopea työkalu minimalististen Nysse-aikataulu&shy;näyttöjen luomiseksi.
+                        Emme vastaa tietojen oikeellisuudesta tai palvelun jatkuvasta saatavuudesta.</p>
+                    <p class="mb-0">Datan lähde: <a href="https://digitransit.fi/en/developers/" target="_blank">Digitransit</a></p>
+                    
+                        
+                    <hr>
+                    
+                    <p class="mb-2"><b>Valitut pysäkit</b></p>
+                    <table class="x-table" id="_table_stops"></table>
+                    
+                    <hr>
+                    
+                    <p class="mb-2"><b>Lisää seurattava pysäkki</b> (aakkosjärjestys)</p>
+                    <div class="row no-gutters">
+                        <div class="col-8 pr-1">
+                            <div class="form-group">
+                                <select id="_select_stop_a" class="form-control"></select>
+                            </div>
+                        </div>
+                        <div class="col-4 pl-1">
+                            <button class="btn btn-success" id="_button_add_a" style="width: 100%;">Lisää</button>
+                        </div>
+                    </div>
+                    
+                    <p class="mb-2"><b>Lisää seurattava pysäkki</b> (numerojärjestys)</p>
+                    <div class="row no-gutters">
+                        <div class="col-8 pr-1">
+                            <div class="form-group">
+                                <select id="_select_stop_b" class="form-control"></select>
+                            </div>
+                        </div>
+                        <div class="col-4 pl-1">
+                            <button class="btn btn-success" id="_button_add_b" style="width: 100%;">Lisää</button>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="form-group">
+                                <p class="mb-2"><b>Taustaväri</b></p>
+                                <p class="mb-0"><input type="color" value="#20264d" id="_color_bg"></p>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group">
+                                <p class="mb-2"><b>Tekstin väri</b></p>
+                                <p class="mb-0"><input type="color" value="#ffffff" id="_color_text"></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="form-group">
+                        <p class="mb-2"><b>Päivitystiheys</b> (sekunteina)</p>
+                        <input type="number" min="5" max="1000" step="1" value="10" id="_interval" class="form-control">
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="text-center">
+                        <button class="btn btn-primary" id="_button_go">&raquo; Luo aikataulunäyttö</button>
+                    </div>
+                        
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+        
+        <div data-view="stops" style="display: none;">
+            <div class="container pl-3 my-3" style="max-width: 1000px;">
+                <div id="stops" class="row"></div>
+            </div>    
+        </div>
+        
+    </body>
+</html>

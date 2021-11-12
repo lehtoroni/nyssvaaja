@@ -1,0 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Dosis:wght@300;400;700&family=Zen+Kaku+Gothic+New:wght@300;400;700&display=swap');
+
+body {
+    font-family: 'Dosis', sans-serif;
+    font-weight: 400;
+    font-size: 12pt;
+    background-color: #20264d;
+    color: #ffffff;
+}
+
+a {
+    color: Skyblue;
+}
+
+a:hover {
+    color: #ffffff;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+}
+
+.x-table {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.x-table, .x-table tr, .x-table td {
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+.x-table .x-divider hr {
+    width: 100%;
+    height: 0px;
+    margin: 0;
+    padding: 0;
+    border-bottom: 1px dashed rgba(255,255,255,0.2);
+}
+
+.x-stop-id {
+    display: inline-block;
+    vertical-align: middle;
+    font-size: 50%;
+    color: #000000;
+    background-color: #ffffff;
+    padding: 0.1em 0.2em 0.1em 0.2em;
+    border-radius: 5px;
+    margin: 0.3em 0 0 0.5em;
+}
+
+.x-time-char {
+    display: inline-block;
+    width: 0.55em;
+    text-align: center;
+}
