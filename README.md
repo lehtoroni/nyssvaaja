@@ -1,6 +1,6 @@
 # Nyssvaaja
 
-![](https://lehtodigital.fi/f/3MgfX)
+![](https://lehtodigital.fi/f/ukuse)
 
 Nyssvaaja (aka Nyssvääjä) on Tampereen seudun joukkoliikenteen pysäkkiaikataulunäyttötyökalu,
 joka kokoaa valituista pysäkeistä minimalistisen infonäytön.

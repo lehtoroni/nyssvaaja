@@ -53,7 +53,18 @@
     }
     
     async function getAllStops(){
-        return await nysseQuery(`{
+        
+        if (window.localStorage) {
+            const cached = window.localStorage.getItem('__nysse_all_stops');
+            if (cached) {
+                const cachedData = JSON.parse(cached);
+                if (Date.now() - cachedData.timestamp <= 1000*60*60*24) {
+                    return cachedData.data;
+                }
+            };
+        }
+        
+        const data = await nysseQuery(`{
             stops(feeds: "tampere") {
                 gtfsId,
                 name,
@@ -61,6 +72,16 @@
                 zoneId
             }
         }`);
+        
+        if (window.localStorage) {
+            window.localStorage.setItem('__nysse_all_stops', JSON.stringify({
+                timestamp: Date.now(),
+                data
+            }))
+        }
+        
+        return data;
+        
     }
     
     async function getStopData(stopId){
@@ -170,6 +191,66 @@
     
     $(() => {
         
+        let allStops = null;
+        
+        function updateSearchResultPosition() {
+            const $parent = $('#_search_stop');
+            const $res = $('#_search_results');
+            const r = $parent[0].getBoundingClientRect();
+            $res
+                .css('width', `${r.right-r.left}px`)
+                .css('max-height', `${Math.max(window.innerHeight-r.bottom-100, 100)}px`)
+                .css('left', `${r.left}px`)
+                .css('top', `${r.bottom}px`);
+        }
+        
+        function updateSearchResults(search) {
+            if (!allStops) return;
+            $('#_search_results div').remove();
+            allStops
+                .filter(st => st.name.toLowerCase().indexOf(search.toLowerCase()) > -1 || st.code.indexOf(search) > -1)
+                .map(st => $('<div class="x-search-row"/>')
+                                .append($('<code/>').text(st.gtfsId), $('<span class="d-inline-block ml-2"/>').text(st.name)))
+                .filter((st, i) => i < 100)
+                .forEach($el => $('#_search_results').append($el))
+        }
+    
+        $('#_search_stop').on('input', e => {
+            const search = $(e.currentTarget).val();
+            if (search.trim().length == 0) {
+                $('#_search_results').hide();
+            } else {
+                $('#_search_results').show();
+                updateSearchResultPosition();
+                updateSearchResults(search);
+            }
+        });
+        
+        $('#_search_results').on('click', '.x-search-row', e => {
+            
+            const stopId = $(e.currentTarget).find('code').text();
+            const stopName = $(e.currentTarget).find('span').text();
+            
+            if ($(`#_table_stops tr[data-stop-id="${stopId}"]`).length > 0)
+                return;
+            
+            $('#_table_stops').append(
+                $('<tr/>').attr('data-stop-id', stopId).append(
+                    $('<td/>').text(stopName),
+                    $('<td class="text-right"/>').text(stopId),
+                    $('<td class="text-right"/>').append(
+                        $('<button class="btn btn-sm btn-danger py-0 px-1" data-action="delete"/>').html('&times;')
+                    )
+                )
+            );
+            
+            updateSearchResultPosition();
+            
+        });
+        
+        $(window).on('scroll', () => updateSearchResultPosition());
+        $(window).on('resize', () => updateSearchResultPosition());
+        
         function loopRefresh() {
             refresh()
                 .then(() => setTimeout(loopRefresh, refresh_rate))
@@ -183,27 +264,7 @@
             
             const nysseStopsRaw = await getAllStops();
             const nysseStops = nysseStopsRaw.data.stops;
-            const $stopOptionsA = nysseStops
-                                    .sort((a, b) => {
-                                        const aName = a.name.toLowerCase();
-                                        const bName = b.name.toLowerCase();
-                                        if (aName < bName) return -1;
-                                        if (bName > aName) return 1;
-                                        return 0;
-                                    })
-                                    .map(st => $('<option/>').text(`${st.name} ${st.code}`).attr('value', st.gtfsId))
-            const $stopOptionsB = nysseStops
-                                    .sort((a, b) => parseInt(a.code) - parseInt(b.code))
-                                    .map(st => $('<option/>').text(`${st.code} ${st.name}`).attr('value', st.gtfsId))
-            
-            const $selA = $('#_select_stop_a');
-            const $selB = $('#_select_stop_b');
-            
-            $selA.find('option').remove();
-            $selB.find('option').remove();
-            
-            $selA.append(...$stopOptionsA);
-            $selB.append(...$stopOptionsB);
+            allStops = nysseStops;
             
         }
         
@@ -224,53 +285,19 @@
                 });
         }
         
-        $('#_button_add_a').click((e) => {
-            
-            e.preventDefault();
-            
-            const stopId = $('#_select_stop_a').val();
-            const stopName = $('#_select_stop_b').find(`option[value="${stopId}"]`).text();
-            
-            if ($(`#_table_stops tr[data-stop-id="${stopId}"]`).length > 0)
-                return;
-            
-            $('#_table_stops').append(
-                $('<tr/>').attr('data-stop-id', stopId).append(
-                    $('<td/>').text(stopName),
-                    $('<td class="text-right"/>').text(stopId),
-                    $('<td class="text-right"/>').append(
-                        $('<button class="btn btn-sm btn-danger py-0 px-1" data-action="delete"/>').html('&times;')
-                    )
-                )
-            );
-            
-        });
-        
-        $('#_button_add_b').click((e) => {
-            
-            e.preventDefault();
-            
-            const stopId = $('#_select_stop_b').val();
-            const stopName = $('#_select_stop_b').find(`option[value="${stopId}"]`).text();
-            
-            if ($(`#_table_stops tr[data-stop-id="${stopId}"]`).length > 0)
-                return;
-            
-            $('#_table_stops').append(
-                $('<tr/>').attr('data-stop-id', stopId).append(
-                    $('<td/>').text(stopName),
-                    $('<td class="text-right"/>').text(stopId),
-                    $('<td class="text-right"/>').append(
-                        $('<button class="btn btn-sm btn-danger py-0 px-1" data-action="delete"/>').html('&times;')
-                    )
-                )
-            );
-            
-        });
-        
         $('#_table_stops').on('click', '[data-action="delete"]', (e) => {
             e.preventDefault();
             $(e.currentTarget).closest('tr[data-stop-id]').remove();
+        });
+        
+        $('#_color_bg').on('input change', e => {
+            const color = $(e.currentTarget).val();
+            $('body').css('background-color', color);
+        });
+        
+        $('#_color_text').on('input change', e => {
+            const color = $(e.currentTarget).val();
+            $('body').css('color', color);
         });
         
         $('#_button_go').click((e) => {

@@ -20,6 +20,30 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
 }
 
+code {
+    display: inline-block;
+    vertical-align: middle;
+    font-size: 80%;
+    color: #000000;
+    background-color: #ffffff;
+    padding: 0.1em 0.2em 0.1em 0.2em;
+    border-radius: 5px;
+    margin: 0 0 0 0.5em;
+}
+
+#_search_results {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    border: 1px solid Black;
+    box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.5);
+    background-color: #cbced4;
+    color: #000000;
+    overflow-y: scroll;
+    z-index: 1000;
+}
+
 .x-table {
     width: 100%;
     margin: 0;
@@ -54,4 +78,20 @@ h1, h2, h3, h4, h5, h6 {
     display: inline-block;
     width: 0.55em;
     text-align: center;
+}
+
+.x-search-row {
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none; 
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.x-search-row:not(:last-child) {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.x-search-row:hover {
+    background-color: rgba(255, 255, 255, 0.5);
 }

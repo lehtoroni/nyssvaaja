@@ -47,29 +47,11 @@
                     
                     <hr>
                     
-                    <p class="mb-2"><b>Lisää seurattava pysäkki</b> (aakkosjärjestys)</p>
-                    <div class="row no-gutters">
-                        <div class="col-8 pr-1">
-                            <div class="form-group">
-                                <select id="_select_stop_a" class="form-control"></select>
-                            </div>
-                        </div>
-                        <div class="col-4 pl-1">
-                            <button class="btn btn-success" id="_button_add_a" style="width: 100%;">Lisää</button>
-                        </div>
+                    <p class="mb-2"><b>Lisää seurattava pysäkki</b> (hae numerolla tai nimellä)</p>
+                    <div class="form-group">
+                        <input type="text" id="_search_stop" class="form-control" autocomplete="off" spellcheck="false" autofocus placeholder="esim. &quot;Metso&quot;">
                     </div>
-                    
-                    <p class="mb-2"><b>Lisää seurattava pysäkki</b> (numerojärjestys)</p>
-                    <div class="row no-gutters">
-                        <div class="col-8 pr-1">
-                            <div class="form-group">
-                                <select id="_select_stop_b" class="form-control"></select>
-                            </div>
-                        </div>
-                        <div class="col-4 pl-1">
-                            <button class="btn btn-success" id="_button_add_b" style="width: 100%;">Lisää</button>
-                        </div>
-                    </div>
+                    <div id="_search_results" style="display: none;"></div>
                     
                     <hr>
                     
