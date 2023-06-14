@@ -27,6 +27,8 @@ console.log(`Nyssvääjä² (c) 2023`);
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 app.use(bodyParser.text({ type: '*/*' }));
 app.use(rateLimit({
     windowMs: 1000*60*5,
