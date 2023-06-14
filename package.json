@@ -2,8 +2,9 @@
   "name": "nyssvaaja",
   "version": "1.2.0",
   "description": "Nysse timetables using the Digitransit API",
-  "main": "index.js",
   "scripts": {
+    "start": "parcel build src/index.html && node server/index.js",
+    "devserver": "node server/index.js",
     "dev": "parcel src/index.html",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -12,6 +13,18 @@
     "react-dom/test-utils": "preact/test-utils",
     "react-dom": "preact/compat",
     "react/jsx-runtime": "preact/jsx-runtime"
+  },
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "baseUrl": "./",
+    "paths": {
+      "react": [
+        "./node_modules/preact/compat/"
+      ],
+      "react-dom": [
+        "./node_modules/preact/compat/"
+      ]
+    }
   },
   "repository": {
     "type": "git",
@@ -30,10 +43,13 @@
     "url": "https://github.com/lehtoroni/nyssvaaja/issues"
   },
   "homepage": "https://github.com/lehtoroni/nyssvaaja#readme",
+  "dependencies": {
+    "bootstrap": "^5.3.0",
+    "preact": "^10.15.1"
+  },
   "devDependencies": {
+    "@parcel/transformer-less": "^2.9.2",
     "parcel": "^2.9.2",
-    "preact": "^8.5.3",
-    "preact-compat": "^3.19.0",
     "tsc": "^2.0.4",
     "typescript": "^5.1.3",
     "typesync": "^0.11.1"
