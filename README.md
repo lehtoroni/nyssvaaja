@@ -12,7 +12,7 @@ joka kokoaa valituista pysäkeistä minimalistisen infonäytön.
 Tarkoitus on lähinnä toimia henkilökohtaisessa käytössä
 Nyssen oman mobiilisovelluksen korvaajana nopeissa aikataulujen tarkistustapauksissa.
 
-Tässä rewritessä käytössä mm.
+Digitransitin rajapinta syö nykyään api-avaimia, joten päätin kirjoittaa koko virityksen uusiksi. Tässä rewritessä käytössä mm.
 - [Preact](https://github.com/preactjs/preact)
 - [Bootstrap 5](https://github.com/twbs)
 - [Express](https://github.com/expressjs/express)
