@@ -50,10 +50,17 @@ export default function AppSettings(props: {}) {
                                 stops: selectedStops.map(st => st.gtfsId),
                                 interval: inputRefreshInterval
                             }))}`;
+                            window.location.reload();
                         }}
                         >
                         &raquo; Luo monitori
                     </button>
+                </div>
+                
+                <hr/>
+                
+                <div className='text-center' style={{ fontSize: '80%' }}>
+                    Forkkaa halutessasi <a href='https://github.com/lehtoroni/nyssvaaja'>Githubissa</a> &lt;3
                 </div>
                 
             </div>

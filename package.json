@@ -3,6 +3,7 @@
   "version": "1.2.0",
   "description": "Nysse timetables using the Digitransit API",
   "scripts": {
+    "postinstall": "(cd server && npm install); (parcel build src/index.html)",
     "start": "parcel build src/index.html && node server/index.js",
     "devserver": "node server/index.js",
     "dev": "parcel src/index.html",

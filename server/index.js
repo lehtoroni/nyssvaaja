@@ -8,6 +8,7 @@ import fetch from 'node-fetch';
 import express from 'express';
 import asyncHandler from 'express-async-handler';
 import bodyParser from 'body-parser';
+import rateLimit from 'express-rate-limit';
 
 const __dirname = path.dirname(URL.fileURLToPath(import.meta.url));
 const args = argsParser(process.argv);
@@ -25,7 +26,14 @@ if (!apiKey || apiKey == '') {
 console.log(`Nyssvääjä² (c) 2023`);
 
 const app = express();
+
 app.use(bodyParser.text({ type: '*/*' }));
+app.use(rateLimit({
+    windowMs: 1000*60*5,
+    max: 20*5,
+    standardHeaders: true,
+    legacyHeaders: false
+}));
 
 app.post('/api/digitransit', asyncHandler(async (req, res) => {
     

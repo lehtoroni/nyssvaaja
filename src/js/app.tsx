@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import AppSettings from './ui/AppSettings';
 import Monitor from './ui/Monitor';
 
+window.addEventListener('hashchange', e => setTimeout(() => window.location.reload(), 10));
+
 export interface IStopData {
     code: string;
     gtfsId: string;

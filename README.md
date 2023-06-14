@@ -1,3 +1,8 @@
+![](https://shields.io/github/license/lehtoroni/nyssvaaja)
+![](https://shields.io/github/languages/top/lehtoroni/nyssvaaja)
+![](https://shields.io/github/issues/lehtoroni/nyssvaaja)
+
+
 # Nyssvaaja
 
 ![](https://lehtodigital.fi/f/ukuse)
