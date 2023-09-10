@@ -4,7 +4,13 @@ import { useState, useEffect, useRef } from 'preact/hooks';
 import { IStopData, Spinner } from '../app';
 import { getAllStops } from '../util';
 
-export default function StopsSelector(props: { onSelect: (stops: IStopData[]) => any }) {
+export const VEHICLE_ICON = {
+    'BUS': `🚌`,
+    'TRAM': `🚃`,
+    '': ''
+} as { [key: string]: string };
+
+export default function StopsSelector(props: { onSelect: (stops: IStopData[]) => any, initialSelection: string[] }) {
     
     const [stops, setStops] = useState<IStopData[]>([]);
     const [error, setError] = useState<string | null>(null);
@@ -20,10 +26,17 @@ export default function StopsSelector(props: { onSelect: (stops: IStopData[]) =>
     useEffect(() => {
         getAllStops()
             .then(stopData => {
-                const rawData: IStopData[] = [...stopData.data.stops];
-                rawData.sort((a, b) => a.name.localeCompare(b.name));
+                
+                const rawData: IStopData[] = [...stopData.data.stops].filter(sd => !!sd.vehicleMode);
+                rawData.sort((a, b) => (a.vehicleMode ?? '').toLowerCase().localeCompare((b.vehicleMode ?? '').toLowerCase()) || a.name.localeCompare(b.name));
+                
                 setStops(rawData);
                 setStopsSearch([...rawData]);
+                
+                if (props.initialSelection) {
+                    setSelectedStops([...rawData.filter(st => props.initialSelection.includes(st.gtfsId))]);
+                }
+                
             })
             .catch(err => {
                 setError(`Pysäkkejä ei voida hakea: ${err}`);
@@ -102,6 +115,7 @@ export default function StopsSelector(props: { onSelect: (stops: IStopData[]) =>
             {stopsSearch.map((st, i) =>
                 <div key={`${st.gtfsId}_${i}`}
                     className='x-search-item d-flex justify-content-between'
+                    data-vehicle-type={st.vehicleMode}
                     data-selected={`${selectedStops.indexOf(st) != -1}`}
                     onClick={e => {
                         e.preventDefault();
@@ -111,7 +125,7 @@ export default function StopsSelector(props: { onSelect: (stops: IStopData[]) =>
                         }
                     }}
                     >
-                    <div>{st.name}</div>
+                    <div><span style={{ marginRight: '8px' }}>{VEHICLE_ICON[st.vehicleMode ?? '?']}</span>{st.name}</div>
                     <div>
                         <code>{st.code}</code>
                     </div>

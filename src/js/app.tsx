@@ -10,13 +10,14 @@ export interface IStopData {
     gtfsId: string;
     name: string;
     zoneId: string;
+    vehicleMode: string;
 }
 
 export interface IStopRealtimeData {
     gtfsId: string;
     name: string;
+    vehicleMode: string | null;
     stoptimesWithoutPatterns: {
-        stop: { platformCode: string };
         serviceDay: number;
         scheduledArrival: number;
         scheduledDeparture: number;
@@ -32,6 +33,7 @@ export interface IStopRealtimeData {
 }
 
 export interface IMonitorSettings {
+    edit: boolean;
     stops: string[];
     interval: number;
 }
@@ -63,9 +65,9 @@ export default function App(props: {}) {
     const [monitorSettings, setMonitorSettings] = useState<IMonitorSettings | null>(getInitialSettings());
     
     return <div>
-        {monitorSettings
+        {monitorSettings && !monitorSettings.edit
             ? <Monitor settings={monitorSettings}/>
-            : <AppSettings key='settings'/>}
+            : <AppSettings key='settings' settings={monitorSettings}/>}
     </div>;
     
 }
