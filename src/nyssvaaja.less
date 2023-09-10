@@ -137,3 +137,37 @@ code {
         background-position: center;
     }
 }
+
+.x-stop-monitor {
+    padding: 0 8px 8px 8px;
+    border-radius: 8px;
+    
+    &[data-vehicle-mode="TRAM"] {
+        background-color: #520f0f;
+    }
+    
+}
+
+.x-floating-edit-button {
+    position: fixed;
+    right: 4px;
+    top: 4px;
+    line-height: 100%;
+    font-size: 16px;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    
+    &:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+        text-shadow: -1px -1px 0 black, 1px -1px 0 black, 1px 1px 0 black, -1px 1px 0 black;
+    }
+    
+    div {
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr;
+        align-items: center;
+        justify-items: center;
+    }
+}

@@ -1,5 +1,8 @@
 import { h } from 'preact';
 
+const STORAGE_VERSION = `2`;
+const KEY_ALL_STOPS = `__nysse_all_stops_${STORAGE_VERSION}`;
+
 /**
  * Send a query to the Digitransit API. Uses the backend to provide the API key.
  * @param query - the graphql query
@@ -30,7 +33,7 @@ export async function nysseQuery(query: string, vars?: any) {
 export async function getAllStops() {
     
     if (window.localStorage) {
-        const cached = window.localStorage.getItem('__nysse_all_stops');
+        const cached = window.localStorage.getItem(KEY_ALL_STOPS);
         if (cached) {
             const cachedData = JSON.parse(cached);
             if (Date.now() - cachedData.timestamp <= 1000*60*60*24) {
@@ -44,7 +47,8 @@ export async function getAllStops() {
             gtfsId,
             name,
             code,
-            zoneId
+            zoneId,
+            vehicleMode
         }
     }`);
     
@@ -54,7 +58,7 @@ export async function getAllStops() {
     }
     
     if (window.localStorage) {
-        window.localStorage.setItem('__nysse_all_stops', JSON.stringify({
+        window.localStorage.setItem(KEY_ALL_STOPS, JSON.stringify({
             timestamp: Date.now(),
             data
         }))
@@ -69,15 +73,13 @@ export async function getAllStops() {
  * @param stopIds the stop ids
  * @returns the data
  */
-export async function getStopsData(stopIds: string[]){
+export async function getStopsData(stopIds: string[]) {
     return await nysseQuery(`{
         ${stopIds.map((id, i) => `${id.replace(':', '_')}: stop(id: "${id}") {
             gtfsId,
             name,
+            vehicleMode,
             stoptimesWithoutPatterns(numberOfDepartures: 5) {
-                stop {
-                    platformCode
-                }
                 serviceDay
                 scheduledArrival
                 scheduledDeparture

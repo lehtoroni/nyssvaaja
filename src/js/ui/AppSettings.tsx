@@ -1,12 +1,20 @@
 import { h } from 'preact';
-import { useState } from 'preact/hooks';
-import { IStopData } from '../app';
+import { useEffect, useState } from 'preact/hooks';
+import { IMonitorSettings, IStopData } from '../app';
 import StopsSelector from './StopsSelector';
 
-export default function AppSettings(props: {}) {
+export default function AppSettings(props: { settings: IMonitorSettings | null }) {
     
     const [selectedStops, setSelectedStops] = useState<IStopData[]>([]);
     const [inputRefreshInterval, setInputRefreshInterval] = useState<number>(10);
+    
+    useEffect(() => {
+        
+        if (props.settings) {
+            setInputRefreshInterval(props.settings.interval);
+        }
+        
+    }, []);
     
     return <div className='container mt-4'>
         <div className='row justify-content-center'>
@@ -26,7 +34,7 @@ export default function AppSettings(props: {}) {
                 <h4>Pysäkit</h4>
                 <StopsSelector onSelect={stops => {
                     setSelectedStops([...stops]);
-                }}/>
+                }} initialSelection={props.settings?.stops ?? []}/>
                 
                 <div className='mb-4'>
                     <label>Päivitystiheys (sekunteina)</label>
@@ -53,7 +61,7 @@ export default function AppSettings(props: {}) {
                             window.location.reload();
                         }}
                         >
-                        &raquo; Luo monitori
+                        &raquo; {props.settings ? 'Päivitä' : 'Luo'} monitori
                     </button>
                 </div>
                 

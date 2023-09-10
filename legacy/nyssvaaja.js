@@ -69,7 +69,9 @@
                 gtfsId,
                 name,
                 code,
-                zoneId
+                zoneId,
+                vehicleType,
+                vehicleMode
             }
         }`);
         

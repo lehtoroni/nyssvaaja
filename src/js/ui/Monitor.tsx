@@ -2,6 +2,7 @@ import { Fragment, h } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
 import { IMonitorSettings, IStopRealtimeData } from '../app';
 import { getStopData, getTimeString, getDueMinutes, getStopsData } from '../util';
+import { VEHICLE_ICON } from './StopsSelector';
 
 export default function Monitor(props: { settings: IMonitorSettings }) {
     
@@ -39,38 +40,53 @@ export default function Monitor(props: { settings: IMonitorSettings }) {
                 <NysseStop key={`${st.gtfsId}_${i}`} data={st}/>
             )}
         </div>
+        <div className='x-floating-edit-button'
+            onClick={e => {
+                e.preventDefault();
+                window.location.href = `/#${encodeURIComponent(JSON.stringify({
+                    ...props.settings,
+                    edit: true
+                }))}`;
+            }}
+            >
+            <div>
+                ⚙️
+            </div>
+        </div>
     </div>;
 }
 
 function NysseStop(props: { data: IStopRealtimeData }) {
     return <div className='col-12 col-md-6 col-lg-5 col-xl-4 mb-3'>
-        <h3>
-            <span className='d-inline-block align-middle'>{props.data.name}</span>
-            <span className='x-stop-id'>{props.data.gtfsId.split(':')[1]}</span>
-        </h3>
-        <table className='x-table'>
-            <tr>
-                <td>🚌</td>
-                <td>📍</td>
-                <td className='text-end'>⌚️</td>
-                <td className='text-end'>⏳️</td>
-            </tr>
-            <tr className='x-divider'><td colSpan={4}><hr/></td></tr>
-            {props.data.stoptimesWithoutPatterns.map(stopTime => 
-                <Fragment>
-                    <tr>
-                        <td style={{ width: '3em;' }}>{stopTime.trip?.route?.shortName ?? '?'}</td>
-                        <td>{stopTime.headsign ?? '?'}</td>
-                        <td className='text-end' style={{ width: '4em' }}>
-                            <b>{getTimeString(stopTime)}</b>
-                        </td>
-                        <td className='text-end' style={{ width: '2em' }}>
-                            <b>{getDueMinutes(stopTime)}</b>
-                        </td>
-                    </tr>
-                    <tr className='x-divider'><td colSpan={4}><hr/></td></tr>
-                </Fragment>
-            )}
-        </table>
+        <div className='x-stop-monitor' data-vehicle-mode={(props.data.vehicleMode ?? '').toUpperCase()}>
+            <h3>
+                <span className='d-inline-block align-middle'>{props.data.name}</span>
+                <span className='x-stop-id'>{props.data.gtfsId.split(':')[1]}</span>
+            </h3>
+            <table className='x-table'>
+                <tr>
+                    <td>{VEHICLE_ICON[props.data.vehicleMode ?? '']}</td>
+                    <td>📍</td>
+                    <td className='text-end'>⌚️</td>
+                    <td className='text-end'>⏳️</td>
+                </tr>
+                <tr className='x-divider'><td colSpan={4}><hr/></td></tr>
+                {props.data.stoptimesWithoutPatterns.map(stopTime => 
+                    <Fragment>
+                        <tr>
+                            <td style={{ width: '3em;' }}>{stopTime.trip?.route?.shortName ?? '?'}</td>
+                            <td>{stopTime.headsign ?? '?'}</td>
+                            <td className='text-end' style={{ width: '4em' }}>
+                                <b>{getTimeString(stopTime)}</b>
+                            </td>
+                            <td className='text-end' style={{ width: '2em' }}>
+                                <b>{getDueMinutes(stopTime)}</b>
+                            </td>
+                        </tr>
+                        <tr className='x-divider'><td colSpan={4}><hr/></td></tr>
+                    </Fragment>
+                )}
+            </table>
+        </div>
     </div>
 }
