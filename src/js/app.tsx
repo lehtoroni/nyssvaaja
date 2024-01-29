@@ -11,6 +11,8 @@ export interface IStopData {
     name: string;
     zoneId: string;
     vehicleMode: string;
+    lat: number;
+    lon: number;
 }
 
 export interface IStopRealtimeData {

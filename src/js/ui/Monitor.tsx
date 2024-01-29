@@ -3,10 +3,12 @@ import { useState, useEffect } from 'preact/hooks';
 import { IMonitorSettings, IStopRealtimeData } from '../app';
 import { getStopData, getTimeString, getDueMinutes, getStopsData } from '../util';
 import { VEHICLE_ICON } from './StopsSelector';
+import NysseMap from './NysseMap';
 
 export default function Monitor(props: { settings: IMonitorSettings }) {
     
     const [stopData, setStopData] = useState<IStopRealtimeData[]>();
+    const [isMapVisible, setMapVisible] = useState<boolean>(false);
     
     function refresh() {
         (async () => {
@@ -40,16 +42,25 @@ export default function Monitor(props: { settings: IMonitorSettings }) {
                 <NysseStop key={`${st.gtfsId}_${i}`} data={st}/>
             )}
         </div>
-        <div className='x-floating-edit-button'
-            onClick={e => {
-                e.preventDefault();
-                window.location.href = `/#${encodeURIComponent(JSON.stringify({
-                    ...props.settings,
-                    edit: true
-                }))}`;
-            }}
-            >
-            <div>
+        {isMapVisible
+            ? <NysseMap settings={props.settings}/>
+            : ''}
+        <div className='x-floating-edit-button'>
+            <div 
+                onClick={e => {
+                    e.preventDefault();
+                    setMapVisible(v => !v);
+                }}>
+                🗺️
+            </div>
+            <div 
+                onClick={e => {
+                    e.preventDefault();
+                    window.location.href = `/#${encodeURIComponent(JSON.stringify({
+                        ...props.settings,
+                        edit: true
+                    }))}`;
+                }}>
                 ⚙️
             </div>
         </div>

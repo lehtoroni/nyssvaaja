@@ -34,7 +34,8 @@ export default function StopsSelector(props: { onSelect: (stops: IStopData[]) =>
                 setStopsSearch([...rawData]);
                 
                 if (props.initialSelection) {
-                    setSelectedStops([...rawData.filter(st => props.initialSelection.includes(st.gtfsId))]);
+                    const initial: IStopData[] = [...props.initialSelection.map(initialId => rawData.find(st => st.gtfsId == initialId) ?? null)].filter(n => n != null) as IStopData[];
+                    setSelectedStops(initial)
                 }
                 
             })
