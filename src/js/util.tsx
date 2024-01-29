@@ -1,7 +1,7 @@
 import { h } from 'preact';
 
-const STORAGE_VERSION = `2`;
-const KEY_ALL_STOPS = `__nysse_all_stops_${STORAGE_VERSION}`;
+const STORAGE_VERSION = `3`;
+export const KEY_ALL_STOPS = `__nysse_all_stops_${STORAGE_VERSION}`;
 
 /**
  * Send a query to the Digitransit API. Uses the backend to provide the API key.
@@ -48,7 +48,9 @@ export async function getAllStops() {
             name,
             code,
             zoneId,
-            vehicleMode
+            vehicleMode,
+            lat,
+            lon
         }
     }`);
     

@@ -149,19 +149,12 @@ code {
 }
 
 .x-floating-edit-button {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     position: fixed;
     right: 4px;
     top: 4px;
-    line-height: 100%;
-    font-size: 16px;
-    padding: 8px;
-    cursor: pointer;
-    border-radius: 4px;
-    
-    &:hover {
-        background-color: rgba(255, 255, 255, 0.2);
-        text-shadow: -1px -1px 0 black, 1px -1px 0 black, 1px 1px 0 black, -1px 1px 0 black;
-    }
+    z-index: 1200;
     
     div {
         display: grid;
@@ -169,5 +162,79 @@ code {
         grid-template-rows: 1fr;
         align-items: center;
         justify-items: center;
+        padding: 8px;
+        font-size: 16px;
+        border-radius: 4px;
+        line-height: 100%;
+        cursor: pointer;
+    
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            text-shadow: -1px -1px 0 black, 1px -1px 0 black, 1px 1px 0 black, -1px 1px 0 black;
+        }
+    }
+}
+
+.x-floating-map {
+    position: fixed;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+    box-sizing: border-box;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    z-index: 1000;
+    background-color: lighten(@bgColor, 10%);
+    
+    .x-floating-map-container {
+        position: relative;
+        width: 100%;
+    
+        .x-map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            .leaflet-container {
+            }
+        }
+    }
+}
+
+.x-bus-icon {
+    z-index: 10000;
+    .inner {
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr;
+        grid-column-gap: 0px;
+        grid-row-gap: 0px;
+        align-items: center;
+        align-content: center;
+        justify-content: center;
+        justify-items: center;
+        
+        &[data-tram="true"] {
+            filter: hue-rotate(110deg);
+        }
+        
+        img {
+            align-self: flex-start;
+            width: 36px;
+            grid-area: 1 / 1 / 2 / 2;
+        }
+        
+        span {
+            align-self: center;
+            display: block;
+            grid-area: 1 / 1 / 2 / 2;
+            color: white;
+            font-size: 12px;
+            line-height: 100%;
+            font-weight: bolder;
+        }
     }
 }

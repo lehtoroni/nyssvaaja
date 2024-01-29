@@ -8,7 +8,12 @@
         "module": "esnext",
         "moduleResolution": "node",
         "strict": true,
-        "target": "es6"
+        "target": "es6",
+        "skipLibCheck": true,
+        "paths": {
+          "react": ["./node_modules/preact/compat/"],
+          "react-dom": ["./node_modules/preact/compat/"]
+        },
     },
     "include": ["src/**/*"]
 }
