@@ -35,21 +35,14 @@ const ICON_STOP_TRAM = icon({
     popupAnchor: [8, -8]
 })
 
-const ICON_BUS = icon({
-    iconUrl: (new URL('../../assets/bussi.png', import.meta.url)).toString(),
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-    popupAnchor: [16, -8]
-})
-
-const ICON_TRAM = icon({
-    iconUrl: (new URL('../../assets/ratikkablob.png', import.meta.url)).toString(),
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-    popupAnchor: [16, -8]
-})
+const ICON_GPS = divIcon({
+    iconSize: [16, 16],
+    className: 'x-gps-icon'
+});
 
 const ICON_CACHE = new Map<string, DivIcon>();
+let hasLocationPermission = false;
+let hasAskedLocationPermission = false;
 
 function getBusIcon(headsign: string, rotation: number, isTram: boolean) {
     
@@ -110,6 +103,7 @@ export default function NysseMap(props: { settings: IMonitorSettings }) {
     const [stops, setStops] = useState<IStopData[]>([]);
     
     const [realtimeData, setRealtimeData] = useState<IRealtimeVehicle[]>([]);
+    const [gpsLocation, setGpsLocation] = useState<[number, number]>([0, 0]);
     
     useEffect(() => {
         getAllStops()
@@ -121,13 +115,33 @@ export default function NysseMap(props: { settings: IMonitorSettings }) {
     
     useEffect(() => {
         
+        function updateLocation() {
+            if (!navigator.geolocation) {
+                return;
+            }
+            if (hasLocationPermission || !hasAskedLocationPermission) {
+                hasAskedLocationPermission = true;
+                navigator.geolocation.getCurrentPosition(position => {
+                    hasLocationPermission = true;
+                    setGpsLocation([position.coords.latitude, position.coords.longitude]);
+                }, error => {
+                    console.error(error);
+                    hasLocationPermission = false;
+                });
+            }
+        }
+        
         function updateRealtime() {
+            
             fetch(`/api/realtime?${Date.now()}`)
                 .then(x => x.json())
                 .then((vehicles: IRealtimeVehicle[]) => {
                     setRealtimeData(vehicles);
                 })
                 .catch(err => console.error(err))
+            
+            updateLocation();
+            
         }
         
         let iv = setInterval(updateRealtime, 3000);
@@ -144,14 +158,16 @@ export default function NysseMap(props: { settings: IMonitorSettings }) {
         >
         <div className='x-floating-map-container'>
             <div className='x-map' style={{ }}>
-                <MapContainer center={TAMPERE} zoom={13} scrollWheelZoom={true} style={{ height: `${screenHeight}px` }}>
+                <MapContainer center={TAMPERE} zoom={13} scrollWheelZoom={true} markerZoomAnimation={false} style={{ height: `${screenHeight}px` }}>
                     
                     <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
                     
-                    {stops.filter(st => st.lat && st.lon).map(st => <ReactMarker position={[st.lat, st.lon]} icon={st.vehicleMode == 'TRAM' ? ICON_STOP_TRAM : ICON_STOP}>
+                    <ReactMarker position={[gpsLocation[0], gpsLocation[1]]} icon={ICON_GPS}/>
+                    
+                    {stops.filter(st => st.lat && st.lon).map(st => <ReactMarker key={st.gtfsId} position={[st.lat, st.lon]} icon={st.vehicleMode == 'TRAM' ? ICON_STOP_TRAM : ICON_STOP}>
                         <Popup>
                             <b>{st.name}</b><br/>
                             {st.code}<br/>
@@ -159,7 +175,7 @@ export default function NysseMap(props: { settings: IMonitorSettings }) {
                         </Popup>
                     </ReactMarker>)}
                     
-                    {realtimeData.map(veh => <RotatedMarker position={veh.location} icon={getBusIcon(veh.headsign, veh.bearing, TRAM_HEADSIGNS.includes(veh.headsign))} rotationAngle={veh.bearing} rotationOrigin='center' zIndexOffset={100}>
+                    {realtimeData.map(veh => <RotatedMarker key={veh.vehicleRef} position={veh.location} icon={getBusIcon(veh.headsign, veh.bearing, TRAM_HEADSIGNS.includes(veh.headsign))} rotationAngle={veh.bearing} rotationOrigin='center' zIndexOffset={100}>
                         <Popup>
                             {veh.headsign}
                         </Popup>

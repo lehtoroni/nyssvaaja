@@ -204,6 +204,39 @@ code {
     }
 }
 
+.x-gps-icon {
+    z-index: 9999;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: rgb(0, 119, 255);
+    border: 3px solid white;
+    outline: 1px solid black;
+    animation-name: breathe;
+    animation-duration: 3s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    transform-origin: 50% 50%;
+}
+
+@keyframes breathe {
+    0% {
+        border-radius: 50%;
+        background-color: rgb(0, 119, 255);
+        opacity: 1;
+    }
+    50% {
+        border-radius: 5px;
+        background-color: rgb(72, 0, 255);
+        opacity: 0.7;
+    }
+    100% {
+        border-radius: 50%;
+        background-color: rgb(0, 119, 255);
+        opacity: 1;
+    }
+}
+
 .x-bus-icon {
     z-index: 10000;
     .inner {
@@ -216,6 +249,7 @@ code {
         align-content: center;
         justify-content: center;
         justify-items: center;
+        filter: brightness(130%);
         
         &[data-tram="true"] {
             filter: hue-rotate(110deg);
