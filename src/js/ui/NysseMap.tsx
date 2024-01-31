@@ -115,20 +115,16 @@ export default function NysseMap(props: { settings: IMonitorSettings }) {
     
     useEffect(() => {
         
-        function updateLocation() {
-            if (!navigator.geolocation) {
-                return;
-            }
-            if (hasLocationPermission || !hasAskedLocationPermission) {
-                hasAskedLocationPermission = true;
-                navigator.geolocation.getCurrentPosition(position => {
-                    hasLocationPermission = true;
-                    setGpsLocation([position.coords.latitude, position.coords.longitude]);
-                }, error => {
-                    console.error(error);
-                    hasLocationPermission = false;
-                });
-            }
+        let geolocationId: number | null = null;
+        
+        if (navigator.geolocation) {
+            geolocationId = navigator.geolocation.watchPosition(position => {
+                hasLocationPermission = true;
+                setGpsLocation([position.coords.latitude, position.coords.longitude]);
+            }, error => {
+                console.error(error);
+                hasLocationPermission = false;
+            })
         }
         
         function updateRealtime() {
@@ -140,8 +136,6 @@ export default function NysseMap(props: { settings: IMonitorSettings }) {
                 })
                 .catch(err => console.error(err))
             
-            updateLocation();
-            
         }
         
         let iv = setInterval(updateRealtime, 3000);
@@ -149,6 +143,9 @@ export default function NysseMap(props: { settings: IMonitorSettings }) {
         
         return () => {
             clearInterval(iv);
+            if (geolocationId != null) {
+                navigator.geolocation.clearWatch(geolocationId);
+            }
         }
         
     }, []);
