@@ -1,9 +1,9 @@
 import { h } from 'preact';
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { IMonitorSettings, IStopData } from '../app';
-import { MapContainer, Marker as ReactMarker, MarkerProps, Popup, TileLayer, useMap, useMapEvent, useMapEvents } from 'react-leaflet';
-import { LatLngExpression, icon, Marker, divIcon, DivIcon } from 'leaflet';
-import { getAllStops } from '../util';
+import { MapContainer, Marker as ReactMarker, MarkerProps, Popup, TileLayer, useMap, useMapEvent, useMapEvents, Polyline, Tooltip } from 'react-leaflet';
+import { LatLngExpression, icon, Marker, divIcon, DivIcon, LatLngTuple } from 'leaflet';
+import { IFuzzyTripDepartureStopTime, IFuzzyTripDetails, findRouteDetails, getAllStops, plusOrMinus } from '../util';
 import { forwardRef } from 'preact/compat';
 import 'leaflet-rotatedmarker';
 
@@ -15,7 +15,9 @@ export interface IRealtimeVehicle {
     location: [number, number],
     bearing: number,
     delay: number,
-    vehicleRef: string
+    vehicleRef: string,
+    tripDate: string,
+    tripTime: string
 }
 
 const TRAM_HEADSIGNS = ['1', '3'];
@@ -105,6 +107,9 @@ export default function NysseMap(props: { settings: IMonitorSettings }) {
     const [realtimeData, setRealtimeData] = useState<IRealtimeVehicle[]>([]);
     const [gpsLocation, setGpsLocation] = useState<[number, number]>([0, 0]);
     
+    const [shownPath, setShownPath] = useState<LatLngExpression[] | null>(null);
+    const [filteredStops, setFilteredStops] = useState<{ [key: string]: IFuzzyTripDepartureStopTime } | null>(null);
+    
     useEffect(() => {
         getAllStops()
             .then(stopsRaw => {
@@ -158,23 +163,75 @@ export default function NysseMap(props: { settings: IMonitorSettings }) {
                 <MapContainer center={TAMPERE} zoom={13} scrollWheelZoom={true} markerZoomAnimation={false} style={{ height: `${screenHeight}px` }}>
                     
                     <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        />
                     
                     <ReactMarker position={[gpsLocation[0], gpsLocation[1]]} icon={ICON_GPS}/>
                     
-                    {stops.filter(st => st.lat && st.lon).map(st => <ReactMarker key={st.gtfsId} position={[st.lat, st.lon]} icon={st.vehicleMode == 'TRAM' ? ICON_STOP_TRAM : ICON_STOP}>
-                        <Popup>
-                            <b>{st.name}</b><br/>
-                            {st.code}<br/>
-                            {st.vehicleMode}
-                        </Popup>
-                    </ReactMarker>)}
+                    {shownPath
+                        ? <Polyline pathOptions={{
+                            color: '#20264d',
+                            weight: 10
+                        }} positions={shownPath}/>
+                        : ''}
                     
-                    {realtimeData.map(veh => <RotatedMarker key={veh.vehicleRef} position={veh.location} icon={getBusIcon(veh.headsign, veh.bearing, TRAM_HEADSIGNS.includes(veh.headsign))} rotationAngle={veh.bearing} rotationOrigin='center' zIndexOffset={100}>
-                        <Popup>
-                            {veh.headsign}
+                    {stops
+                        .filter(st => st.lat && st.lon)
+                        .map(st => <ReactMarker key={st.gtfsId} position={[st.lat, st.lon]} icon={st.vehicleMode == 'TRAM' ? ICON_STOP_TRAM : ICON_STOP}
+                            opacity={(!filteredStops || filteredStops[st.gtfsId]) ? 1 : 0.2} >
+                            <Popup>
+                                <b>{st.name}</b><br/>
+                                {st.code}<br/>
+                                {st.vehicleMode}
+                            </Popup>
+                            {filteredStops && filteredStops[st.gtfsId] && (((filteredStops[st.gtfsId].serviceDay*1000 + filteredStops[st.gtfsId].realtimeDeparture*1000) - Date.now())/1000/60) > 0
+                                ? <Tooltip direction='top' permanent={true}>
+                                    <div className='x-map-stop-tooltip'>
+                                        <b>{filteredStops[st.gtfsId].stop.name}</b> <br/>
+                                        {(((filteredStops[st.gtfsId].serviceDay*1000 + filteredStops[st.gtfsId].realtimeDeparture*1000) - Date.now())/1000/60).toFixed(0)} min
+                                    </div>
+                                </Tooltip>
+                                : ''}
+                        </ReactMarker>)}
+                    
+                    {realtimeData.map(veh => <RotatedMarker
+                        key={veh.vehicleRef}
+                        position={veh.location}
+                        icon={getBusIcon(veh.headsign, veh.bearing, TRAM_HEADSIGNS.includes(veh.headsign))}
+                        rotationAngle={veh.bearing}
+                        rotationOrigin='center'
+                        zIndexOffset={100}
+                        eventHandlers={{
+                            click: e => {
+                                setShownPath(null);
+                                findRouteDetails(veh.headsign, parseInt(veh.direction), veh.tripDate, veh.tripTime)
+                                    .then(trip => {
+                                        if (!trip) {
+                                            throw new Error(`Fuzzy trip search failed for ${veh.headsign}`);
+                                        }
+                                        setShownPath(trip.geometry.map(([lo, la]) => [la, lo]));
+                                        setFilteredStops(Object.fromEntries(trip.stoptimesForDate.map(s => [s.stop.gtfsId, s])));
+                                    })
+                                    .catch(err => {
+                                        console.error(err);
+                                        setShownPath(null);
+                                    })
+                            }
+                        }}
+                        >
+                        <Popup eventHandlers={{
+                            remove: e => {
+                               setFilteredStops(null);
+                               setShownPath(null);
+                            },
+                            popupclose: e => {
+                                setFilteredStops(null);
+                                setShownPath(null);
+                            }
+                        }}>
+                            <b>{veh.headsign} {veh.destination}</b> <br/>
+                            {(veh.delay/1000/60).toFixed(1)} min myöhässä <br/>
                         </Popup>
                     </RotatedMarker>)}
                     

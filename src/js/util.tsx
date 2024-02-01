@@ -1,7 +1,85 @@
+import { LatLngTuple } from 'leaflet';
 import { h } from 'preact';
 
 const STORAGE_VERSION = `3`;
 export const KEY_ALL_STOPS = `__nysse_all_stops_${STORAGE_VERSION}`;
+
+export interface IRoutePattern {
+    directionId: number,
+    id: string,
+    name: string,
+    geometry: { lat: number, lon: number }[]
+}
+
+export interface IFuzzyTripDepartureStopTime {
+    stop: {
+        gtfsId: string,
+        name: string,
+        zoneId: string
+    },
+    serviceDay: number,
+    realtimeDeparture: number,
+    scheduledDeparture: number,
+}
+
+export interface IFuzzyTripDetails {
+    tripShortName: string,
+    routeShortName: string,
+    gtfsId: string,
+    tripHeadsign: string,
+    geometry: LatLngTuple[],
+    stops: {
+        gtfsId: string,
+        name: string
+    }[],
+    stoptimesForDate: IFuzzyTripDepartureStopTime[]
+}
+
+export function plusOrMinus(n: number, precision: number = 1) {
+    return n <= 0
+        ? `${n.toFixed(precision)}`
+        : `+${n.toFixed(precision)}`;
+}
+
+export async function findRouteDetails(routeHeadsign: string, direction: number, dateRef: string, timeRef: string) {
+    
+    if (!routeHeadsign.startsWith('tampere:')) {
+        routeHeadsign = `tampere:${routeHeadsign}`;
+    }
+    
+    const timeHours = parseInt(timeRef.substring(0, 2));
+    const timeMinutes = parseInt(timeRef.substring(2, 4));
+    const timeRefSeconds = timeHours*60*60 + timeMinutes*60;
+    
+    const rawData = await nysseQuery(`{
+        fuzzyTrip(route: "${routeHeadsign}", direction: ${direction}, date: ${JSON.stringify(dateRef)}, time: ${timeRefSeconds}) {
+            tripShortName,
+            routeShortName,
+            gtfsId,
+            tripHeadsign,
+            geometry,
+            stops {
+                gtfsId,
+                name
+            },
+            stoptimesForDate(serviceDate: ${JSON.stringify(dateRef.replace(/\-/gmi, ''))}) {
+              stop {
+                  gtfsId,
+                  name,
+                  zoneId
+              },
+              serviceDay,
+              realtimeDeparture,
+              scheduledDeparture,
+            }
+        }
+    }`);
+    
+    const tripData: IFuzzyTripDetails | null = rawData.data?.fuzzyTrip ?? null;
+      
+    return tripData;
+    
+}
 
 /**
  * Send a query to the Digitransit API. Uses the backend to provide the API key.
