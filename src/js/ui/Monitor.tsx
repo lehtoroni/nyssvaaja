@@ -8,7 +8,7 @@ import NysseMap from './NysseMap';
 export default function Monitor(props: { settings: IMonitorSettings }) {
     
     const [stopData, setStopData] = useState<IStopRealtimeData[]>();
-    const [isMapVisible, setMapVisible] = useState<boolean>(true);
+    const [isMapVisible, setMapVisible] = useState<boolean>(false);
     
     function refresh() {
         (async () => {
