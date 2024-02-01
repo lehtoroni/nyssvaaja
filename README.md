@@ -7,16 +7,19 @@
 
 ![](https://lehtodigital.fi/f/ukuse)
 
+**🗺️ Uusimmassa versiossa mukana myös reaaliaikakartta!**
+
 Nyssvaaja (aka Nyssvääjä) on Tampereen seudun joukkoliikenteen pysäkkiaikataulunäyttötyökalu,
 joka kokoaa valituista pysäkeistä minimalistisen infonäytön.
 Tarkoitus on lähinnä toimia henkilökohtaisessa käytössä
-Nyssen oman mobiilisovelluksen korvaajana nopeissa aikataulujen tarkistustapauksissa.
+Nyssen oman mobiilisovelluksen korvaajana nopeissa aikataulujen ja bussien sijaintien tarkistustapauksissa (...etenkin kun on kävelemässä loskasäässä kohti pysäkkiä todetakseen vuoron juuri peruuntuneen).
 
 Digitransitin rajapinta syö nykyään api-avaimia, joten päätin kirjoittaa koko virityksen uusiksi. Tässä rewritessä käytössä mm.
 - [Preact](https://github.com/preactjs/preact)
 - [Bootstrap 5](https://github.com/twbs)
 - [Express](https://github.com/expressjs/express)
 - [Digitransit API](https://digitransit.fi/en/developers/apis/)
+- [Leaflet](https://leafletjs.com/)
 
 Valmiiksi hostattu versio löytyy osoitteesta [nyssvaaja.lehtodigital.fi](https://nyssvaaja.lehtodigital.fi).
 
@@ -48,3 +51,11 @@ It is highly recommended to run the app behind a reverse proxy.
 
 ## License
 MIT
+
+
+## mOAR picSTURES
+The newest version also includes a map!
+
+![](https://lehtodigital.fi/f/fsb2G)
+
+![](https://lehtodigital.fi/f/i8K3K)

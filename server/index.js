@@ -72,7 +72,9 @@ async function updateRealtime() {
             ],
             bearing: v.MonitoredVehicleJourney.Bearing,
             delay: convertDurationToMilliseconds(v.MonitoredVehicleJourney.Delay),
-            vehicleRef: v.MonitoredVehicleJourney.VehicleRef.value
+            vehicleRef: v.MonitoredVehicleJourney.VehicleRef.value,
+            tripDate: v.MonitoredVehicleJourney.FramedVehicleJourneyRef.DataFrameRef.value,
+            tripTime: v.MonitoredVehicleJourney.FramedVehicleJourneyRef.DatedVehicleJourneyRef
         }))
         
     } catch (err) {
