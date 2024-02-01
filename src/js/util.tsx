@@ -2,6 +2,7 @@ import { LatLngTuple } from 'leaflet';
 import { h } from 'preact';
 
 const STORAGE_VERSION = `3`;
+export const FEED_ID = `tampere`;
 export const KEY_ALL_STOPS = `__nysse_all_stops_${STORAGE_VERSION}`;
 
 export interface IRoutePattern {
@@ -35,16 +36,32 @@ export interface IFuzzyTripDetails {
     stoptimesForDate: IFuzzyTripDepartureStopTime[]
 }
 
+/**
+ * Adds a + to positive integers, with .toFixed() support
+ * @param n - the number
+ * @param precision - the amount of decimals, 0 to ...
+ * @returns the string representation
+ */
 export function plusOrMinus(n: number, precision: number = 1) {
     return n <= 0
         ? `${n.toFixed(precision)}`
         : `+${n.toFixed(precision)}`;
 }
 
+
+/**
+ * Execute a fuzzy search on a trip, useful when trying to find detials
+ * for piece of realtime info
+ * @param routeHeadsign - the headsign/gtfsId of the route (e.g. "tampere:70")
+ * @param direction - the direction of the trip, either 0 or 1 
+ * @param dateRef - the service date, as YYYY-MM-DDDD
+ * @param timeRef - the service time, as "HHMM" (the weird format from SIRI)
+ * @returns the fetched trip data
+ */
 export async function findRouteDetails(routeHeadsign: string, direction: number, dateRef: string, timeRef: string) {
     
-    if (!routeHeadsign.startsWith('tampere:')) {
-        routeHeadsign = `tampere:${routeHeadsign}`;
+    if (!routeHeadsign.startsWith(`${FEED_ID}:`)) {
+        routeHeadsign = `${FEED_ID}:${routeHeadsign}`;
     }
     
     const timeHours = parseInt(timeRef.substring(0, 2));
@@ -121,7 +138,7 @@ export async function getAllStops() {
     }
     
     const data = await nysseQuery(`{
-        stops(feeds: "tampere") {
+        stops(feeds: "${FEED_ID}") {
             gtfsId,
             name,
             code,
