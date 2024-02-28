@@ -1,11 +1,15 @@
-import { h } from 'preact';
+import { Fragment, h } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { IMonitorSettings, IStopData } from '../app';
+import { IMonitorSettings, IStopData, IStopRealtimeData } from '../app';
 import { MapContainer, Marker as ReactMarker, MarkerProps, Popup, TileLayer, useMap, useMapEvent, useMapEvents, Polyline, Tooltip } from 'react-leaflet';
-import { LatLngExpression, icon, Marker, divIcon, DivIcon, LatLngTuple } from 'leaflet';
-import { IFuzzyTripDepartureStopTime, IFuzzyTripDetails, findRouteDetails, getAllStops, plusOrMinus } from '../util';
+import { LatLngExpression, icon, Marker, divIcon, DivIcon, LatLngTuple, LatLng } from 'leaflet';
+import { IFuzzyTripDepartureStopTime, IFuzzyTripDetails, findRouteDetails, getAllStops, getStopData, plusOrMinus } from '../util';
 import { forwardRef } from 'preact/compat';
 import 'leaflet-rotatedmarker';
+import 'leaflet-doubletapdrag';
+import 'leaflet-doubletapdragzoom';
+
+import { NysseStop } from './Monitor';
 
 export interface IRealtimeVehicle {
     headsign: string,
@@ -108,7 +112,10 @@ export default function NysseMap(props: { settings: IMonitorSettings }) {
     const [gpsLocation, setGpsLocation] = useState<[number, number]>([0, 0]);
     
     const [shownPath, setShownPath] = useState<LatLngExpression[] | null>(null);
+    const [shownPathQuery, setShownPathQuery] = useState<[string, number, string, string] | null>(null);
     const [filteredStops, setFilteredStops] = useState<{ [key: string]: IFuzzyTripDepartureStopTime } | null>(null);
+    
+    const [shownStop, setShownStop] = useState<[LatLngExpression, IStopRealtimeData | null] | null>(null);
     
     useEffect(() => {
         getAllStops()
@@ -117,6 +124,64 @@ export default function NysseMap(props: { settings: IMonitorSettings }) {
                 setStops(rawData);
             })
     }, []);
+    
+    useEffect(() => {
+        
+        if (!shownStop) return;
+        if (!shownStop[1]) return;
+        
+        const st: IStopRealtimeData = shownStop[1];
+        
+        const iv = setInterval(() => {
+            getStopData(st.gtfsId)
+                .then(stopData => {
+                    if (!stopData.data || !stopData.data.stop) throw new Error(`!`);
+                    const stopInfo: IStopRealtimeData = stopData.data.stop;
+                    setShownStop([
+                        shownStop[0],
+                        stopInfo
+                    ])
+                })
+                .catch(err => {
+                    console.error(err);
+                    setShownStop([
+                        shownStop[0],
+                        null
+                    ])
+                })
+        }, 1000*10);
+        
+        return () => {
+            clearInterval(iv);
+        }
+        
+    }, [shownStop])
+    
+    useEffect(() => {
+        
+        if (!shownPathQuery) return;
+        
+        const iv = setInterval(() => {
+            findRouteDetails(...shownPathQuery)
+                .then(trip => {
+                    if (!trip) {
+                        throw new Error(`Fuzzy trip search failed for ${shownPathQuery[0]}`);
+                    }
+                    setShownPath(trip.geometry.map(([lo, la]) => [la, lo]));
+                    setFilteredStops(Object.fromEntries(trip.stoptimesForDate.map(s => [s.stop.gtfsId, s])));
+                })
+                .catch(err => {
+                    console.error(err);
+                    setShownPath(null);
+                    setShownPathQuery(null);
+                })
+        }, 1000*10);
+        
+        return () => {
+            clearInterval(iv);
+        }
+        
+    }, [shownPathQuery])
     
     useEffect(() => {
         
@@ -160,7 +225,9 @@ export default function NysseMap(props: { settings: IMonitorSettings }) {
         >
         <div className='x-floating-map-container'>
             <div className='x-map' style={{ }}>
-                <MapContainer center={TAMPERE} zoom={13} scrollWheelZoom={true} markerZoomAnimation={false} style={{ height: `${screenHeight}px` }}>
+                <MapContainer center={TAMPERE} zoom={13} scrollWheelZoom={true} markerZoomAnimation={false} style={{ height: `${screenHeight}px` }}
+                {...{}/* @ts-ignore */}
+                doubleTapDragZoomOptions={{ reverse: true }}>
                     
                     <TileLayer
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -176,15 +243,45 @@ export default function NysseMap(props: { settings: IMonitorSettings }) {
                         }} positions={shownPath}/>
                         : ''}
                     
+                    {shownStop
+                        ? <Popup position={shownStop[0]}
+                            >
+                            {shownStop[1]
+                                ? <Fragment>
+                                    <NysseStop data={shownStop[1]}/>
+                                </Fragment>
+                                : <Fragment>
+                                    Haetaan...
+                                </Fragment>}
+                        </Popup>
+                        : ''}
+                    
                     {stops
                         .filter(st => st.lat && st.lon)
                         .map(st => <ReactMarker key={st.gtfsId} position={[st.lat, st.lon]} icon={st.vehicleMode == 'TRAM' ? ICON_STOP_TRAM : ICON_STOP}
-                            opacity={(!filteredStops || filteredStops[st.gtfsId]) ? 1 : 0.2} >
-                            <Popup>
-                                <b>{st.name}</b><br/>
-                                {st.code}<br/>
-                                {st.vehicleMode}
-                            </Popup>
+                            opacity={(!filteredStops || filteredStops[st.gtfsId]) ? 1 : 0.2}
+                            eventHandlers={{
+                                click: e => {
+                                    getStopData(st.gtfsId)
+                                        .then(stopData => {
+                                            if (!stopData.data || !stopData.data.stop) throw new Error(`!`);
+                                            const stopInfo: IStopRealtimeData = stopData.data.stop;
+                                            setShownStop([
+                                                [st.lat, st.lon],
+                                                stopInfo
+                                            ])
+                                        })
+                                        .catch(err => {
+                                            console.error(err);
+                                            setShownStop(null);
+                                        })
+                                    setShownStop([
+                                        [st.lat, st.lon],
+                                        null
+                                    ])
+                                }
+                            }}
+                            >
                             {filteredStops && filteredStops[st.gtfsId] && (((filteredStops[st.gtfsId].serviceDay*1000 + filteredStops[st.gtfsId].realtimeDeparture*1000) - Date.now())/1000/60) > 0
                                 ? <Tooltip direction='top' permanent={true}>
                                     <div className='x-map-stop-tooltip'>
@@ -210,12 +307,14 @@ export default function NysseMap(props: { settings: IMonitorSettings }) {
                                         if (!trip) {
                                             throw new Error(`Fuzzy trip search failed for ${veh.headsign}`);
                                         }
+                                        setShownPathQuery([veh.headsign, parseInt(veh.direction), veh.tripDate, veh.tripTime]);
                                         setShownPath(trip.geometry.map(([lo, la]) => [la, lo]));
                                         setFilteredStops(Object.fromEntries(trip.stoptimesForDate.map(s => [s.stop.gtfsId, s])));
                                     })
                                     .catch(err => {
                                         console.error(err);
                                         setShownPath(null);
+                                        setShownPathQuery(null);
                                     })
                             }
                         }}

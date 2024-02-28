@@ -56,6 +56,8 @@ MIT
 ## mOAR picSTURES
 The newest version also includes a map!
 
+![](https://lehtodigital.fi/f/NRazk)
+
 ![](https://lehtodigital.fi/f/fsb2G)
 
 ![](https://lehtodigital.fi/f/i8K3K)
