@@ -67,7 +67,7 @@ export default function Monitor(props: { settings: IMonitorSettings }) {
     </div>;
 }
 
-function NysseStop(props: { data: IStopRealtimeData }) {
+export function NysseStop(props: { data: IStopRealtimeData }) {
     return <div className='col-12 col-md-6 col-lg-5 col-xl-4 mb-3'>
         <div className='x-stop-monitor' data-vehicle-mode={(props.data.vehicleMode ?? '').toUpperCase()}>
             <h3>
