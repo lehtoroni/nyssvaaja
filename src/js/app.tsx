@@ -35,6 +35,7 @@ export interface IStopRealtimeData {
 }
 
 export interface IMonitorSettings {
+    isMapOnly?: boolean;
     edit: boolean;
     stops: string[];
     interval: number;
@@ -65,10 +66,13 @@ function getInitialSettings() {
 export default function App(props: {}) {
     
     const [monitorSettings, setMonitorSettings] = useState<IMonitorSettings | null>(getInitialSettings());
+    const [isMapOnly, setMapOnly] = useState<boolean>((window.location.hash ?? '') == '#kartta');
     
     return <div>
-        {monitorSettings && !monitorSettings.edit
-            ? <Monitor settings={monitorSettings}/>
+        {(monitorSettings && !monitorSettings.edit) || isMapOnly
+            ? <Monitor
+                settings={monitorSettings ?? { interval: 1000*10, stops: [], edit: false }}
+                isMapOnly={isMapOnly}/>
             : <AppSettings key='settings' settings={monitorSettings}/>}
     </div>;
     

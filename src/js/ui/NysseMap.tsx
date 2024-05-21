@@ -2,7 +2,7 @@ import { Fragment, h } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { IMonitorSettings, IStopData, IStopRealtimeData } from '../app';
 import { MapContainer, Marker as ReactMarker, MarkerProps, Popup, TileLayer, useMap, useMapEvent, useMapEvents, Polyline, Tooltip } from 'react-leaflet';
-import { LatLngExpression, icon, Marker, divIcon, DivIcon, LatLngTuple, LatLng } from 'leaflet';
+import { LatLngExpression, icon, Marker, divIcon, DivIcon, LatLngTuple, LatLng, Map as LeafletMap } from 'leaflet';
 import { IFuzzyTripDepartureStopTime, IFuzzyTripDetails, findRouteDetails, getAllStops, getStopData, plusOrMinus } from '../util';
 import { forwardRef } from 'preact/compat';
 import 'leaflet-rotatedmarker';
@@ -103,19 +103,21 @@ const RotatedMarker = forwardRef(({ children, ...props }: RotatedMarkerProps, fo
     );
 });
 
-export default function NysseMap(props: { settings: IMonitorSettings }) {
+export default function NysseMap(props: { settings: IMonitorSettings, isMapOnly: boolean }) {
     
     const [screenHeight, setScreenHeight] = useState<number>(window.innerHeight);
     const [stops, setStops] = useState<IStopData[]>([]);
     
     const [realtimeData, setRealtimeData] = useState<IRealtimeVehicle[]>([]);
     const [gpsLocation, setGpsLocation] = useState<[number, number]>([0, 0]);
+    const [initialCenter, setInitialCenter] = useState<[number, number] | null>(null);
     
     const [shownPath, setShownPath] = useState<LatLngExpression[] | null>(null);
     const [shownPathQuery, setShownPathQuery] = useState<[string, number, string, string] | null>(null);
     const [filteredStops, setFilteredStops] = useState<{ [key: string]: IFuzzyTripDepartureStopTime } | null>(null);
     
     const [shownStop, setShownStop] = useState<[LatLngExpression, IStopRealtimeData | null] | null>(null);
+    const mapRef = useRef<LeafletMap>(null);
     
     useEffect(() => {
         getAllStops()
@@ -186,11 +188,21 @@ export default function NysseMap(props: { settings: IMonitorSettings }) {
     useEffect(() => {
         
         let geolocationId: number | null = null;
+        let hadInitial: boolean = false;
         
         if (navigator.geolocation) {
             geolocationId = navigator.geolocation.watchPosition(position => {
+                
                 hasLocationPermission = true;
                 setGpsLocation([position.coords.latitude, position.coords.longitude]);
+                
+                if (!hadInitial) {
+                    if (mapRef.current) {
+                        mapRef.current.flyTo([position.coords.latitude, position.coords.longitude], 15);
+                    }
+                    hadInitial = true;
+                }
+                
             }, error => {
                 console.error(error);
                 hasLocationPermission = false;
@@ -225,9 +237,16 @@ export default function NysseMap(props: { settings: IMonitorSettings }) {
         >
         <div className='x-floating-map-container'>
             <div className='x-map' style={{ }}>
-                <MapContainer center={TAMPERE} zoom={13} scrollWheelZoom={true} markerZoomAnimation={false} style={{ height: `${screenHeight}px` }}
-                {...{}/* @ts-ignore */}
-                doubleTapDragZoomOptions={{ reverse: true }}>
+                <MapContainer
+                    center={TAMPERE}
+                    zoom={13}
+                    scrollWheelZoom={true}
+                    markerZoomAnimation={false}
+                    style={{ height: `${screenHeight}px` }}
+                    {...{}/* @ts-ignore */}
+                    doubleTapDragZoomOptions={{ reverse: true }}
+                    ref={mapRef}
+                    >
                     
                     <TileLayer
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -322,10 +341,12 @@ export default function NysseMap(props: { settings: IMonitorSettings }) {
                         <Popup eventHandlers={{
                             remove: e => {
                                setFilteredStops(null);
+                               setShownPathQuery(null);
                                setShownPath(null);
                             },
                             popupclose: e => {
                                 setFilteredStops(null);
+                                setShownPathQuery(null);
                                 setShownPath(null);
                             }
                         }}>

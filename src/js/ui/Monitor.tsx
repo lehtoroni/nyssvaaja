@@ -5,10 +5,11 @@ import { getStopData, getTimeString, getDueMinutes, getStopsData } from '../util
 import { VEHICLE_ICON } from './StopsSelector';
 import NysseMap from './NysseMap';
 
-export default function Monitor(props: { settings: IMonitorSettings }) {
+export default function Monitor(props: { settings: IMonitorSettings, isMapOnly: boolean }) {
     
     const [stopData, setStopData] = useState<IStopRealtimeData[]>();
     const [isMapVisible, setMapVisible] = useState<boolean>(false);
+    const {isMapOnly} = props;
     
     function refresh() {
         (async () => {
@@ -42,10 +43,10 @@ export default function Monitor(props: { settings: IMonitorSettings }) {
                 <NysseStop key={`${st.gtfsId}_${i}`} data={st}/>
             )}
         </div>
-        {isMapVisible
-            ? <NysseMap settings={props.settings}/>
+        {isMapVisible || isMapOnly
+            ? <NysseMap settings={props.settings} isMapOnly={isMapOnly}/>
             : ''}
-        <div className='x-floating-edit-button'>
+        <div className='x-floating-edit-button' style={{ display: isMapOnly ? 'none' : '' }}>
             <div 
                 onClick={e => {
                     e.preventDefault();

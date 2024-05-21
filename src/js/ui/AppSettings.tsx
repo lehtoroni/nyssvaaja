@@ -61,8 +61,19 @@ export default function AppSettings(props: { settings: IMonitorSettings | null }
                             window.location.reload();
                         }}
                         >
-                        &raquo; {props.settings ? 'Päivitä' : 'Luo'} monitori
+                        <span className='me-1'>⭐️</span> {props.settings ? 'Päivitä' : 'Luo'} monitori
                     </button>
+                    {!props.settings    
+                        ? <button className='btn btn-outline-light ms-2'
+                                onClick={e => {
+                                    e.preventDefault();
+                                    window.location.href = `/#kartta`;
+                                    window.location.reload();
+                                }}
+                                >
+                                <span className='me-1'>🗺️</span> Avaa pelkkä kartta
+                            </button>
+                        : ''}
                 </div>
                 
                 <hr/>
