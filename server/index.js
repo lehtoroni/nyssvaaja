@@ -19,6 +19,7 @@ const port = args.port ?? 9999;
 const apiKey = args.apiKey ?? (fs.existsSync(apiKeyFile) ? fs.readFileSync(apiKeyFile, 'utf8').trim() : null);
 //const baseUrl = `https://api.digitransit.fi/routing/v1/routers/waltti/index/graphql`;
 const baseUrl = `https://api.digitransit.fi/routing/v2/waltti/gtfs/v1`;
+const FEED_ID = `tampere`;
 
 const realtimeDelay = (args.realtimeDelay ?? 3) * 2000;
 let cachedRealtimeData = {};
