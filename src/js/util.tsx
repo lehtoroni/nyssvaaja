@@ -64,60 +64,24 @@ export async function findRouteDetails(routeHeadsign: string, direction: number,
         routeHeadsign = `${FEED_ID}:${routeHeadsign}`;
     }
     
-    const timeHours = parseInt(timeRef.substring(0, 2));
-    const timeMinutes = parseInt(timeRef.substring(2, 4));
-    const timeRefSeconds = timeHours*60*60 + timeMinutes*60;
-    
-    const rawData = await nysseQuery(`{
-        fuzzyTrip(route: "${routeHeadsign}", direction: ${direction}, date: ${JSON.stringify(dateRef)}, time: ${timeRefSeconds}) {
-            tripShortName,
-            routeShortName,
-            gtfsId,
-            tripHeadsign,
-            geometry,
-            stops {
-                gtfsId,
-                name
-            },
-            stoptimesForDate(serviceDate: ${JSON.stringify(dateRef.replace(/\-/gmi, ''))}) {
-              stop {
-                  gtfsId,
-                  name,
-                  zoneId
-              },
-              serviceDay,
-              realtimeDeparture,
-              scheduledDeparture,
-            }
-        }
-    }`);
-    
-    const tripData: IFuzzyTripDetails | null = rawData.data?.fuzzyTrip ?? null;
-      
-    return tripData;
-    
-}
-
-/**
- * Send a query to the Digitransit API. Uses the backend to provide the API key.
- * @param query - the graphql query
- * @param vars - variables, optional
- * @returns - the raw JSON response
- */
-export async function nysseQuery(query: string, vars?: any) {
-    
-    const x = await fetch(`/api/digitransit`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+    const x = await fetch(`/api/getRouteDetails`, {
+        method: 'post',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            query,
-            variables: vars ?? {}
+            routeHeadsign,
+            direction,
+            dateRef,
+            timeRef
         })
     });
     
-    return await x.json();
+    if (!x.ok || x.status != 200) {
+        throw new Error(`Fetch error: ${x.status} ${x.statusText}`);
+    }
+    
+    let res = await x.json();
+    console.log(res);
+    return res;
     
 }
 
@@ -137,17 +101,10 @@ export async function getAllStops() {
         };
     }
     
-    const data = await nysseQuery(`{
-        stops(feeds: "${FEED_ID}") {
-            gtfsId,
-            name,
-            code,
-            zoneId,
-            vehicleMode,
-            lat,
-            lon
-        }
-    }`);
+    const x = await fetch(`/api/getAllStops`, {
+        method: 'GET',
+    });
+    const data = await x.json();
     
     if (data.error) {
         console.error(data.error);
@@ -171,26 +128,15 @@ export async function getAllStops() {
  * @returns the data
  */
 export async function getStopsData(stopIds: string[]) {
-    return await nysseQuery(`{
-        ${stopIds.map((id, i) => `${id.replace(':', '_')}: stop(id: "${id}") {
-            gtfsId,
-            name,
-            vehicleMode,
-            stoptimesWithoutPatterns(numberOfDepartures: 5) {
-                serviceDay
-                scheduledArrival
-                scheduledDeparture
-                realtimeArrival
-                realtimeDeparture
-                trip {
-                    route {
-                        shortName
-                    }
-                }
-                headsign
-            }
-        }`).join('\n')}
-    }`);
+    
+    const x = await fetch(`/api/getStopsData`, {
+        method: 'post',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stopIds })
+    });
+    
+    return await x.json();
+    
 }
 
 /**
@@ -199,28 +145,7 @@ export async function getStopsData(stopIds: string[]) {
  * @returns the data
  */
 export async function getStopData(stopId: string){
-    return await nysseQuery(`{
-        stop(id: "${stopId}") {
-            gtfsId,
-            name,
-            stoptimesWithoutPatterns(numberOfDepartures: 5) {
-                stop {
-                    platformCode
-                }
-                serviceDay
-                scheduledArrival
-                scheduledDeparture
-                realtimeArrival
-                realtimeDeparture
-                trip {
-                    route {
-                        shortName
-                    }
-                }
-                headsign
-            }
-        }
-    }`);
+    return Object.values((await getStopsData([ stopId ])).data)[0];
 }
 
 /**

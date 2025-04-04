@@ -6,7 +6,7 @@
     "postinstall": "(cd server && npm install); (parcel build src/index.html)",
     "start": "parcel build src/index.html && node server/index.js",
     "devserver": "node server/index.js",
-    "dev": "parcel src/index.html",
+    "dev": "parcel src/index.html --no-hmr",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "alias": {

@@ -137,8 +137,8 @@ export default function NysseMap(props: { settings: IMonitorSettings, isMapOnly:
         const iv = setInterval(() => {
             getStopData(st.gtfsId)
                 .then(stopData => {
-                    if (!stopData.data || !stopData.data.stop) throw new Error(`!`);
-                    const stopInfo: IStopRealtimeData = stopData.data.stop;
+                    if (!stopData) throw new Error(`!`);
+                    const stopInfo: IStopRealtimeData = stopData as any;
                     setShownStop([
                         shownStop[0],
                         stopInfo
@@ -283,8 +283,8 @@ export default function NysseMap(props: { settings: IMonitorSettings, isMapOnly:
                                 click: e => {
                                     getStopData(st.gtfsId)
                                         .then(stopData => {
-                                            if (!stopData.data || !stopData.data.stop) throw new Error(`!`);
-                                            const stopInfo: IStopRealtimeData = stopData.data.stop;
+                                            if (!stopData) throw new Error(`!`);
+                                            const stopInfo: IStopRealtimeData = stopData as any;
                                             setShownStop([
                                                 [st.lat, st.lon],
                                                 stopInfo
@@ -351,7 +351,7 @@ export default function NysseMap(props: { settings: IMonitorSettings, isMapOnly:
                             }
                         }}>
                             <b>{veh.headsign} {veh.destination}</b> <br/>
-                            {(veh.delay/1000/60).toFixed(1)} min myöhässä <br/>
+                            {(Math.abs(veh.delay)/1000/60).toFixed(1)} min {veh.delay < 0 ? 'etuajassa' : 'myöhässä'} <br/>
                         </Popup>
                     </RotatedMarker>)}
                     
