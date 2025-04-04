@@ -274,7 +274,7 @@ app.get('/api/getAllStops', (req, res) => {
     }
     
     nysseQuery(`{
-        stops(feeds: "${FEED_ID}") {
+        stops {
             gtfsId,
             name,
             code,
@@ -285,6 +285,9 @@ app.get('/api/getAllStops', (req, res) => {
         }
     }`)
         .then(rawData => {
+            if (rawData && rawData.data && rawData.data.stops) {
+                rawData.data.stops = rawData.data.stops.filter(stop => (stop.gtfsId ?? '').startsWith('tampere:'))
+            }
             if (rawData) {
                 cachedAllStops = rawData;
                 timeCachedAllStops = Date.now();
