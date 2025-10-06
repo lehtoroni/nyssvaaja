@@ -1,5 +1,6 @@
 import { Fragment, h } from 'preact';
-import { lazy, Suspense, useState } from 'preact/compat';
+import { useState } from 'preact/hooks';
+import { lazy, Suspense } from 'preact/compat';
 import { RemixIcon } from 'src/js/util';
 
 const LegalInfo = lazy(() => import('./legal'));
