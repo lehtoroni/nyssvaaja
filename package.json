@@ -1,10 +1,11 @@
 {
   "name": "nyssvaaja",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Nysse timetables using the Digitransit API",
   "scripts": {
     "postinstall": "(cd server && npm install); (parcel build src/index.html)",
     "start": "parcel build src/index.html && node server/index.js",
+    "build": "parcel build src/index.html",
     "devserver": "node server/index.js",
     "dev": "parcel src/index.html --no-hmr",
     "licensereport:front": "license-report --output=json --fields=name --fields=licenseType --fields=link --fields=installedVersion --fields=author > src/assets/licenses_frontend.json",
@@ -57,7 +58,6 @@
     "preact": "^10.15.1",
     "react": "npm:@preact/compat",
     "react-dom": "npm:@preact/compat",
-    "react-leaflet": "^4.2.1",
     "remixicon": "^4.6.0"
   },
   "devDependencies": {

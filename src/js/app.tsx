@@ -5,6 +5,7 @@ import Monitor from './ui/Monitor';
 import NysseMapNew from './ui/newmap/map';
 import StopChooser from './ui/chooser/chooser';
 import AppInfo from './ui/info/info';
+import { RemixIcon } from './util';
 
 export interface IStopData {
     code: string;
@@ -162,7 +163,7 @@ export default function App(props: {}) {
                                 setChoosing(true);
                             }}
                             >
-                            ➕
+                            <RemixIcon icon='ri-map-pin-add-line'/>
                         </button>
                         {monitorStops.length > 0 && 
                             <button
@@ -172,7 +173,7 @@ export default function App(props: {}) {
                                     setEditing(ed => !ed);
                                 }}
                                 >
-                                {isEditing ? '✅' : '✏️'}
+                                {isEditing ? <RemixIcon icon='ri-check-line'/> : <RemixIcon icon='ri-pencil-line'/>}
                             </button>}
                     </div>
                 </Fragment>}
@@ -188,21 +189,21 @@ export default function App(props: {}) {
                         e.preventDefault();
                         setAppView(AppView.MONITORS);
                     }}
-                    >🚍️</div>
+                    ><RemixIcon icon='ri-bus-fill'/></div>
                 <div className='menu-item'
                     data-active={`${appView == AppView.MAP}`}
                     onClick={e => {
                         e.preventDefault();
                         setAppView(AppView.MAP);
                     }}
-                    >🗺️</div>
+                    ><RemixIcon icon='ri-road-map-line'/></div>
                 <div className='menu-item'
                     data-active={`${appView == AppView.INFO}`}
                     onClick={e => {
                         e.preventDefault();
                         setAppView(AppView.INFO);
                     }}
-                    >ℹ️</div>
+                    ><RemixIcon icon='ri-information-2-line'/></div>
             </div>
         </div>
         

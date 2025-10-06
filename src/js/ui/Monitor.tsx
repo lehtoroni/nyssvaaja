@@ -57,7 +57,7 @@ export default function Monitor(props: {
                             props.onEdit(i, 'down');
                         }}
                         >
-                        🔽
+                        <RemixIcon icon='ri-arrow-down-line'/>
                     </button>
                     <button className='x-btn'
                         onClick={e => {
@@ -65,7 +65,7 @@ export default function Monitor(props: {
                             props.onEdit(i, 'up');
                         }}
                         >
-                        🔼
+                        <RemixIcon icon='ri-arrow-up-line'/>
                     </button>
                     <button className='x-btn'
                         onClick={e => {
@@ -75,7 +75,7 @@ export default function Monitor(props: {
                             }
                         }}
                         >
-                        🗑️
+                        <RemixIcon icon='ri-delete-bin-6-line'/>
                     </button>
                 </div>}
                 {stopData[stopId]

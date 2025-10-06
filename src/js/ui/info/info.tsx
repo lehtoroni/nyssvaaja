@@ -1,5 +1,6 @@
 import { Fragment, h } from 'preact';
 import { lazy, Suspense, useState } from 'preact/compat';
+import { RemixIcon } from 'src/js/util';
 
 const LegalInfo = lazy(() => import('./legal'));
 const NysseAlerts = lazy(() => import('./alerts'));
@@ -134,15 +135,13 @@ export default function AppInfo(props: {}) {
                         }}
                         >
                         <div className='view-sub-top p-2' style={{
-                            position: 'sticky',
-                            top: '0'
                         }}>
                             <button className='btn btn-sm text-light'
                                 onClick={e => {
                                     e.preventDefault();
                                     setOpenView(null);
                                 }}
-                                >&lArr; Takaisin</button>
+                                ><RemixIcon icon='ri-arrow-go-back-line'/> Takaisin</button>
                         </div>
                         <div className='view-sub-content'>
                             {openView == viewId && viewContent}

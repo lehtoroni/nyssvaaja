@@ -1,7 +1,7 @@
 import { Fragment, h } from 'preact';
 import { useEffect, useMemo, useState } from 'react';
 import { IStopData } from 'src/js/app';
-import { getAllStops } from 'src/js/util';
+import { getAllStops, RemixIcon } from 'src/js/util';
 import StopSelectorMap from './stopsmap';
 
 export default function StopChooser(props: {
@@ -60,7 +60,7 @@ export default function StopChooser(props: {
                     props.onChoose(selectedStops);
                 }}
                 >
-                ✔️
+                <RemixIcon icon='ri-save-line'/> {' '}
                 Valmis
             </button>
         </div>
@@ -74,7 +74,7 @@ export default function StopChooser(props: {
                 }}
                 data-active={`${!isMapMode}`}
                 >
-                🔎 Lista
+                <RemixIcon icon='ri-list-view'/>  Lista
             </button>
             <button
                 className='x-btn'
@@ -84,7 +84,7 @@ export default function StopChooser(props: {
                     setMapMode(m => !m);
                 }}
                 >
-                🗺️ Kartta
+                <RemixIcon icon='ri-map-pin-line'/> Kartta
             </button>
         </div>
         
