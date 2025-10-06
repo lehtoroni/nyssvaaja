@@ -1,5 +1,5 @@
 import { Fragment, h } from 'preact';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import { IStopData } from 'src/js/app';
 import { getAllStops, RemixIcon } from 'src/js/util';
 import StopSelectorMap from './stopsmap';
