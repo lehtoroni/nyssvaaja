@@ -9,6 +9,7 @@ import express from 'express';
 import asyncHandler from 'express-async-handler';
 import bodyParser from 'body-parser';
 import rateLimit from 'express-rate-limit';
+import NodeCache from 'node-cache';
 
 const __dirname = path.dirname(URL.fileURLToPath(import.meta.url));
 const args = argsParser(process.argv);
@@ -24,6 +25,12 @@ const FEED_ID = `tampere`;
 const realtimeDelay = (args.realtimeDelay ?? 3) * 2000;
 let cachedRealtimeData = {};
 updateRealtime();
+
+const queryCache = new NodeCache({
+    stdTTL: 60,
+    useClones: false,
+    maxKeys: 1000
+});
 
 function convertDurationToMilliseconds(durationString) {
     
@@ -112,6 +119,7 @@ app.use(rateLimit({
     legacyHeaders: false
 }));
 
+/*
 app.post('/api/digitransit', asyncHandler(async (req, res) => {
     
     const x = await fetch(baseUrl, {
@@ -134,6 +142,7 @@ app.post('/api/digitransit', asyncHandler(async (req, res) => {
     res.json(respRaw);
     
 }));
+*/
 
 async function nysseQuery(query) {
     
@@ -155,6 +164,28 @@ async function nysseQuery(query) {
     
 }
 
+
+app.get('/api/getAllRoutes', asyncHandler(async (req, res) => {
+    
+    if (queryCache.has(req.path)) {
+        return res.json(queryCache.get(req.path));
+    }
+    
+    const data = await nysseQuery(`{
+        routes(feeds: ["tampere"]) {
+            gtfsId,
+            shortName,
+            mode,
+            longName
+        }
+    }`);
+    
+    queryCache.set(req.path, data, 60*60);
+    
+    return res.json(data);
+    
+}));
+
 app.post('/api/getStopsData', (req, res) => {
     
     if (!req.body
@@ -169,6 +200,15 @@ app.post('/api/getStopsData', (req, res) => {
     
     const stopIds = [...req.body.stopIds].map(en => `${en}`.replace(/[^A-Za-z0-9:_\-\., ]/, ''));
     
+    let maxRows = req.query.maxRows
+        ? Number(`${req.query.maxRows}`)
+        : 15;
+    
+    if (isNaN(maxRows)) {
+        maxRows = 15;
+    }
+    maxRows = Math.floor(Math.max(1, Math.min(15, maxRows)));
+    
     if (stopIds.length == 0) {
         res.json([]);
         return;
@@ -179,13 +219,31 @@ app.post('/api/getStopsData', (req, res) => {
             gtfsId,
             name,
             vehicleMode,
-            stoptimesWithoutPatterns(numberOfDepartures: 5) {
+            alerts {
+                effectiveStartDate,
+                effectiveEndDate,
+                alertDescriptionText,
+                alertHeaderText,
+                alertSeverityLevel
+            }
+            routes {
+                gtfsId,
+                shortName
+            }
+            stoptimesWithoutPatterns(numberOfDepartures: ${maxRows}) {
                 serviceDay
                 scheduledArrival
                 scheduledDeparture
                 realtimeArrival
                 realtimeDeparture
                 trip {
+                    alerts {
+                        effectiveStartDate,
+                        effectiveEndDate,
+                        alertDescriptionText,
+                        alertHeaderText,
+                        alertSeverityLevel
+                    }
                     route {
                         shortName
                     }
@@ -266,39 +324,99 @@ app.post('/api/getRouteDetails', (req, res) => {
 let cachedAllStops = null;
 let timeCachedAllStops = 0;
 
-app.get('/api/getAllStops', (req, res) => {
+app.get('/api/getAllStops', asyncHandler(async (req, res) => {
     
-    if (cachedAllStops && Date.now() - timeCachedAllStops <= 1000*60*60*3) {
-        res.json(cachedAllStops);
-        return;
+    const feed = req.query.feed || 'tampere:';
+    
+    const rawData = queryCache.has(req.path)
+        ? queryCache.get(req.path)
+        : await (async () => {
+            const x = await nysseQuery(`{
+                stops {
+                    gtfsId,
+                    name,
+                    code,
+                    zoneId,
+                    vehicleMode,
+                    lat,
+                    lon
+                }
+            }`);
+            queryCache.set(req.path, x, 60*15);
+            return x;
+        })();
+    
+    if (rawData && rawData.data && rawData.data.stops) {
+        rawData.data.stops = rawData.data.stops.filter(stop => (stop.gtfsId ?? '').startsWith(feed))
     }
     
-    nysseQuery(`{
-        stops {
-            gtfsId,
-            name,
-            code,
-            zoneId,
-            vehicleMode,
-            lat,
-            lon
-        }
-    }`)
-        .then(rawData => {
-            if (rawData && rawData.data && rawData.data.stops) {
-                rawData.data.stops = rawData.data.stops.filter(stop => (stop.gtfsId ?? '').startsWith('tampere:'))
-            }
-            if (rawData) {
-                cachedAllStops = rawData;
-                timeCachedAllStops = Date.now();
-            }
-            res.json(rawData);
-        })
-        .catch(err => {
-            console.error(err);
-            res.json({ error: `${err}` });
-        })
-})
+    return res.json(rawData);
+    
+}));
+
+app.get('/api/getAlerts', asyncHandler(async (req, res) => {
+    
+    const feed = req.query.feed || 'tampere';
+    
+    const rawData = queryCache.has(req.path)
+        ? queryCache.get(req.path)
+        : await (async () => {
+            const x = await nysseQuery(`{
+                alerts(feeds: [${JSON.stringify(feed)}]) {
+                    id,
+                    effectiveStartDate,
+                    effectiveEndDate,
+                    alertDescriptionText,
+                    alertHeaderText,
+                    alertSeverityLevel,
+                    entities {
+                        __typename,
+                        ... on Stop {
+                        gtfsId,
+                        name,
+                        code
+                        },
+                        ... on Route {
+                        gtfsId,
+                        shortName,
+                        longName
+                        },
+                        ... on StopOnRoute {
+                        route { gtfsId },
+                        stop { gtfsId }
+                        },
+                        ... on StopOnTrip {
+                        trip { gtfsId },
+                        stop { gtfsId }
+                        },
+                        ... on Agency {
+                        gtfsId
+                        },
+                        ... on Pattern {
+                        headsign
+                        },
+                        ... on RouteType {
+                        routeType
+                        },
+                        ... on Trip {
+                        gtfsId,
+                        tripShortName,
+                        routeShortName
+                        }
+                    }
+                }
+            }`);
+            queryCache.set(req.path, x, 60);
+            return x;
+        })();
+    
+    if (rawData && rawData.data && rawData.data.stops) {
+        rawData.data.stops = rawData.data.stops.filter(stop => (stop.gtfsId ?? '').startsWith(feed))
+    }
+    
+    return res.json(rawData);
+    
+}));
 
 app.get('/api/realtime', asyncHandler(async (req, res) => {
     res.json(cachedRealtimeData);

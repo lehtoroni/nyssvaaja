@@ -7,7 +7,9 @@
     "start": "parcel build src/index.html && node server/index.js",
     "devserver": "node server/index.js",
     "dev": "parcel src/index.html --no-hmr",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "licensereport:front": "license-report --output=json --fields=name --fields=licenseType --fields=link --fields=installedVersion --fields=author > src/assets/licenses_frontend.json",
+    "licensereport:server": "license-report --output=json --fields=name --fields=licenseType --fields=link --fields=installedVersion --fields=author --package=./server/package.json > src/assets/licenses_server.json",
+    "licensereport": "npm run licensereport:front && npm run licensereport:server"
   },
   "alias": {
     "react": "preact/compat",
@@ -45,24 +47,28 @@
   },
   "homepage": "https://github.com/lehtoroni/nyssvaaja#readme",
   "dependencies": {
+    "@preact/signals": "^2.3.1",
     "bootstrap": "^5.3.0",
     "leaflet": "^1.9.4",
     "leaflet-doubletapdrag": "^0.1.1",
     "leaflet-doubletapdragzoom": "^0.3.1",
     "leaflet-rotatedmarker": "^0.2.0",
+    "node-cache": "^5.1.2",
     "preact": "^10.15.1",
     "react": "npm:@preact/compat",
     "react-dom": "npm:@preact/compat",
-    "react-leaflet": "^4.2.1"
+    "react-leaflet": "^4.2.1",
+    "remixicon": "^4.6.0"
   },
   "devDependencies": {
-    "@parcel/transformer-less": "^2.9.2",
+    "@parcel/transformer-less": "^2.16.0",
     "@types/bootstrap": "^5.2.10",
     "@types/leaflet": "^1.9.8",
     "@types/leaflet-rotatedmarker": "^0.2.5",
     "@types/react": "18.2.48",
     "@types/react-dom": "18.2.18",
-    "parcel": "^2.9.2",
+    "license-report": "^6.8.0",
+    "parcel": "^2.16.0",
     "process": "^0.11.10",
     "tsc": "^2.0.4",
     "typescript": "^5.1.3",

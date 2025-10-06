@@ -1,9 +1,10 @@
 import { Fragment, h } from 'preact';
+import 'preact/debug';
 import { useEffect, useRef, useState } from 'preact/hooks';
-import AppSettings from './ui/AppSettings';
 import Monitor from './ui/Monitor';
-
-window.addEventListener('hashchange', e => setTimeout(() => window.location.reload(), 10));
+import NysseMapNew from './ui/newmap/map';
+import StopChooser from './ui/chooser/chooser';
+import AppInfo from './ui/info/info';
 
 export interface IStopData {
     code: string;
@@ -19,6 +20,17 @@ export interface IStopRealtimeData {
     gtfsId: string;
     name: string;
     vehicleMode: string | null;
+    alerts: {
+        effectiveStartDate: number,
+        effectiveEndDate: number,
+        alertDescriptionText: string,
+        alertHeaderText: string,
+        alertSeverityLevel: string
+    }[];
+    routes: {
+        gtfsId: string,
+        shortName: string
+    }[];
     stoptimesWithoutPatterns: {
         serviceDay: number;
         scheduledArrival: number;
@@ -29,6 +41,13 @@ export interface IStopRealtimeData {
             route?: {
                 shortName?: string;
             };
+            alerts: {
+                effectiveStartDate: number,
+                effectiveEndDate: number,
+                alertDescriptionText: string,
+                alertHeaderText: string,
+                alertSeverityLevel: string
+            }[];
         };
         headsign?: string;
     }[];
@@ -53,7 +72,7 @@ function getInitialSettings() {
         const rawHash = window.location.hash.substring(1);
         try {
             const metaRaw = JSON.parse(decodeURIComponent(rawHash));
-            if (metaRaw.stops && metaRaw.interval) {
+            if (metaRaw.stops) {
                 return metaRaw;
             }
         } catch (err) {}
@@ -63,17 +82,139 @@ function getInitialSettings() {
     
 }
 
+const initialSettings = getInitialSettings() || {};
+
+export enum AppView {
+    MONITORS = 'monitors',
+    MAP = 'map',
+    INFO = 'info'
+};
+
 export default function App(props: {}) {
     
-    const [monitorSettings, setMonitorSettings] = useState<IMonitorSettings | null>(getInitialSettings());
     const [isMapOnly, setMapOnly] = useState<boolean>((window.location.hash ?? '') == '#kartta');
     
-    return <div>
-        {(monitorSettings && !monitorSettings.edit) || isMapOnly
-            ? <Monitor
-                settings={monitorSettings ?? { interval: 1000*10, stops: [], edit: false }}
-                isMapOnly={isMapOnly}/>
-            : <AppSettings key='settings' settings={monitorSettings}/>}
-    </div>;
+    const [appView, setAppView] = useState<AppView>(AppView.MONITORS);
+    
+    const [isChoosing, setChoosing] = useState<boolean>(false);
+    const [isEditing, setEditing] = useState<boolean>(false);
+    const [monitorStops, setMonitorStops] = useState<string[]>(initialSettings.stops || []);
+    
+    useEffect(() => {
+        
+        if (monitorStops.length == 0) {
+            return;
+        }
+        
+        window.location.hash = `#${encodeURIComponent(JSON.stringify({
+            stops: monitorStops
+        }))}`;
+        
+    }, [monitorStops]);
+    
+    return <Fragment>
+        
+        <div className='nyssvaaja-app'>
+            <div className='nyssvaaja-view'>
+                {appView == AppView.MONITORS && <Fragment>
+                    <Monitor
+                        stops={monitorStops}
+                        interval={10}
+                        isEditing={isEditing}
+                        onEdit={(n, command) => {
+                            switch (command) {
+                                case 'delete': {
+                                    setMonitorStops(old => old.filter((st, i) => i != n));
+                                    break;
+                                }
+                                case 'up':
+                                case 'down': {
+                                    
+                                    const mut = [...monitorStops];
+                                    if (command == 'up' && n > 0) {
+                                        const oldPrev = mut[n-1];
+                                        mut[n-1] = mut[n];
+                                        mut[n] = oldPrev;
+                                    } else if (command == 'down' && n < mut.length-1) {
+                                        const oldNext = mut[n+1];
+                                        mut[n+1] = mut[n];
+                                        mut[n] = oldNext;
+                                    }
+                                    
+                                    setMonitorStops(mut);
+                                    
+                                    break;
+                                }
+                            }
+                        }}
+                        />
+                    {monitorStops.length == 0 &&
+                        <div className='nyssvaaja-get-started'>
+                            <h1>👻</h1>
+                            <h2>Oho, tyhjää!</h2>
+                            <p>Aloita valitsemalla pysäkkejä &darr;</p>
+                        </div>}
+                    <div className='nyssvaaja-edit-monitor mb-3'>
+                        <button
+                            className='x-btn'
+                            onClick={e => {
+                                e.preventDefault();
+                                setChoosing(true);
+                            }}
+                            >
+                            ➕
+                        </button>
+                        {monitorStops.length > 0 && 
+                            <button
+                                className='x-btn'
+                                onClick={e => {
+                                    e.preventDefault();
+                                    setEditing(ed => !ed);
+                                }}
+                                >
+                                {isEditing ? '✅' : '✏️'}
+                            </button>}
+                    </div>
+                </Fragment>}
+                {appView == AppView.MAP &&
+                    <NysseMapNew/>}
+                {appView == AppView.INFO &&
+                    <AppInfo/>}
+            </div>
+            <div className='nyssvaaja-menu'>
+                <div className='menu-item'
+                    data-active={`${appView == AppView.MONITORS}`}
+                    onClick={e => {
+                        e.preventDefault();
+                        setAppView(AppView.MONITORS);
+                    }}
+                    >🚍️</div>
+                <div className='menu-item'
+                    data-active={`${appView == AppView.MAP}`}
+                    onClick={e => {
+                        e.preventDefault();
+                        setAppView(AppView.MAP);
+                    }}
+                    >🗺️</div>
+                <div className='menu-item'
+                    data-active={`${appView == AppView.INFO}`}
+                    onClick={e => {
+                        e.preventDefault();
+                        setAppView(AppView.INFO);
+                    }}
+                    >ℹ️</div>
+            </div>
+        </div>
+        
+        {isChoosing &&
+            <StopChooser
+                onChoose={stops => {
+                    setMonitorStops(stops);
+                    setChoosing(false);
+                }}
+                chosen={monitorStops}
+                />}
+        
+    </Fragment>;
     
 }

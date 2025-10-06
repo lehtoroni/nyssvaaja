@@ -10,6 +10,7 @@
         "strict": true,
         "target": "es6",
         "skipLibCheck": true,
+        "resolveJsonModule": true,
         "paths": {
           "react": ["./node_modules/preact/compat/"],
           "react-dom": ["./node_modules/preact/compat/"]

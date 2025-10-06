@@ -139,6 +139,26 @@ export async function getStopsData(stopIds: string[]) {
     
 }
 
+
+export type IGenericRoute = {
+    gtfsId: string,
+    shortName: string,
+    mode: string,
+    longName: string
+};
+
+export async function getAllRoutes(feed: string = 'tampere') {
+    
+    const x = await fetch('/api/getAllRoutes');
+    const routes: IGenericRoute[] = (await x.json())?.data.routes ?? [];
+    
+    return routes.toSorted((a, b) => 
+        (parseInt(`${a.shortName}`.replace(/[^0-9]/gmi, '')) - parseInt(`${b.shortName}`.replace(/[^0-9]/gmi, '')))
+        || a.shortName.localeCompare(b.shortName)
+    );
+    
+}
+
 /**
  * Fetch data for a stop
  * @param stopId the stop id
@@ -189,4 +209,18 @@ export function getDueMinutes(stopTime: {
     const d = new Date((stopTime.serviceDay + stopTime.realtimeDeparture)*1000);
     const mins = Math.floor((d.getTime() - Date.now())/1000/60);
     return mins <= 60 ? mins : '';
+}
+
+/**
+ * Encode HTML special chars
+ */
+export function encodeHTML(s: string) {
+    return s.replace(/</gmi, '&lt;')
+        .replace(/>/gmi, '&gt;')
+        .replace(/"/gmi, '&quot;')
+        .replace(/&/gmi, '&amp;');
+}
+
+export function RemixIcon(props: { icon: string }) {
+    return <i class={`ri ${props.icon}`}></i>;
 }
