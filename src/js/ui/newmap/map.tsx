@@ -1,7 +1,7 @@
 import { Fragment, h, render } from 'preact';
 
 import L, { DivIcon, divIcon, icon, LatLngExpression, Map as LeafletMap, Marker, Polyline, popup } from 'leaflet';
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { Dispatch, StateUpdater, useEffect, useRef, useState } from 'preact/hooks';
 import { signal } from '@preact/signals';
 
 import 'leaflet-rotatedmarker';
@@ -62,11 +62,14 @@ const ICON_TRAM = divIcon({
     + `</div>`
 });
 
-export default function NysseMapNew(props: {}) {
+export default function NysseMapNew(props: {
+    filteredLines: string[] | null,
+    setFilteredLines: Dispatch<StateUpdater<string[] | null>>
+}) {
     
     const refMapContainer = useRef<HTMLDivElement>(null);
     
-    const [filteredLines, setFilteredLines] = useState<string[] | null>();
+    const {filteredLines, setFilteredLines} = props;
     const [isLinePickerOpen, setLinePickerOpen] = useState<boolean>(false);
     
     useEffect(() => {
@@ -424,6 +427,10 @@ export default function NysseMapNew(props: {}) {
         
     }, []);
     
+    useEffect(() => {
+        __mapState?.filterLines(props.filteredLines);
+    }, [props.filteredLines]);
+    
     return <div className='x-floating-map'
         style={{  }}
         >
@@ -450,13 +457,6 @@ export default function NysseMapNew(props: {}) {
                 }}
                 >
                 <RemixIcon icon='ri-navigation-line'/>
-            </button>
-            <button
-                onClick={e => {
-                    e.preventDefault();
-                }}
-                >
-                <RemixIcon icon='ri-equalizer-2-line'/>
             </button>
         </div>
         

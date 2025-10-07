@@ -99,19 +99,25 @@ export default function App(props: {}) {
     
     const [isChoosing, setChoosing] = useState<boolean>(false);
     const [isEditing, setEditing] = useState<boolean>(false);
+    
+    
+    const [filteredLines, setFilteredLines] = useState<string[] | null>(initialSettings.mapLines || null);
     const [monitorStops, setMonitorStops] = useState<string[]>(initialSettings.stops || []);
     
     useEffect(() => {
         
-        if (monitorStops.length == 0) {
+        /*
+        if (monitorStops.length == 0 && filteredLines == null) {
             return;
         }
+        */
         
         window.location.hash = `#${encodeURIComponent(JSON.stringify({
-            stops: monitorStops
+            stops: monitorStops,
+            mapLines: filteredLines
         }))}`;
         
-    }, [monitorStops]);
+    }, [monitorStops, filteredLines]);
     
     return <Fragment>
         
@@ -178,7 +184,10 @@ export default function App(props: {}) {
                     </div>
                 </Fragment>}
                 {appView == AppView.MAP &&
-                    <NysseMapNew/>}
+                    <NysseMapNew
+                        filteredLines={filteredLines}
+                        setFilteredLines={setFilteredLines}
+                        />}
                 {appView == AppView.INFO &&
                     <AppInfo/>}
             </div>

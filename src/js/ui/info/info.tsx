@@ -25,9 +25,9 @@ const VIEWS: Record<string, [string, any]> = {
             
             <hr/>
             
-            <h2>1. Valitse pysäkit</h2>
+            <h2>1. Valitse pysäkit ja kartan linjat</h2>
             <p>
-                Valitse Nyssvääjän monitorinäkymästä pysäkki tai useampi, jotka haluat näkyviin. Voit valita pysäkit listalta tai kartalta.
+                Valitse Nyssvääjän monitorinäkymästä pysäkki tai useampi, jotka haluat näkyviin. Voit valita pysäkit listalta tai kartalta. Valitse halutessasi karttanäkymään linjasuodattimia.
             </p>
             <p>
                 <img src='https://lehtodigital.fi/f/jj0Xb' className='nyssvaaja-info-img'/>
@@ -35,12 +35,18 @@ const VIEWS: Record<string, [string, any]> = {
             
             <hr/>
             
-            <h2>2. Lisää aloitusnäyttöön</h2>
+            <h2>2. Talleta osoite</h2>
             <p>
-                <b>Saat luomasi Nyssvääjä-näkymän auki aina samalla osoitteella</b>, jonka Nyssvääjä päivittää selaimeesi tehdessäsi muutoksia.
+                <b>Nyssvääjä tallentaa tekemäsi valinnat sivun URL-osoitteeseen.</b>
+            </p>
+            <p>
+                Saat luomasi Nyssvääjä-näkymän auki aina samalla osoitteella, jonka Nyssvääjä päivittää osoitepalkkiin tehdessäsi muutoksia.
             </p>
             <p>
                 Voit lisätä Nyssvääjä-kuvakkeen kotinäyttöösi tai suosikkeihisi, jolloin pääset nopeasti monitoriisi.
+            </p>
+            <p>
+                <img src='https://lehtodigital.fi/f/O7mll' className='nyssvaaja-info-img'/>
             </p>
             
             <hr/>
