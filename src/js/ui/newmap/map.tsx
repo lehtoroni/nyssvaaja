@@ -104,6 +104,9 @@ export default function NysseMapNew(props: {}) {
                 position.coords.longitude
             ]);
             
+            gpsLocation[0] = position.coords.latitude;
+            gpsLocation[1] = position.coords.longitude;
+            
             if (!hadInitialGps) {
                 map.flyTo([position.coords.latitude, position.coords.longitude], 15);
                 hadInitialGps = true;
@@ -393,7 +396,7 @@ export default function NysseMapNew(props: {}) {
                 
             },
             jumpToGps: () => {
-                map.flyTo(gpsLocation);
+                map.flyTo(gpsLocation, 15, { animate: false });
             }
         };
         
