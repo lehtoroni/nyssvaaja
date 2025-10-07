@@ -80,7 +80,6 @@ export async function findRouteDetails(routeHeadsign: string, direction: number,
     }
     
     let res = await x.json();
-    console.log(res);
     return res;
     
 }

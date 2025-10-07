@@ -5,8 +5,19 @@ import { RemixIcon } from 'src/js/util';
 
 const LegalInfo = lazy(() => import('./legal'));
 const NysseAlerts = lazy(() => import('./alerts'));
+const NysseOverallSituation = lazy(() => import('./overall'));
 
 const VIEWS: Record<string, [string, any]> = {
+    'alerts': ['⚠️ Häiriötiedotteet', <Fragment>
+        <Suspense fallback={<p>Ladataan...</p>}>
+            <NysseAlerts feed='tampere'/>
+        </Suspense>
+    </Fragment>],
+    'overall': ['🕰️ Yleistilanne', <Fragment>
+        <Suspense fallback={<p>Ladataan...</p>}>
+            <NysseOverallSituation feed='tampere'/>
+        </Suspense>
+    </Fragment>],
     'guide': ['❓️ Käyttöohje', <Fragment>
         <div className='p-3'>
             
@@ -39,11 +50,6 @@ const VIEWS: Record<string, [string, any]> = {
             </p>
             
         </div>
-    </Fragment>],
-    'alerts': ['⚠️ Häiriötiedotteet', <Fragment>
-        <Suspense fallback={<p>Ladataan...</p>}>
-            <NysseAlerts feed='tampere'/>
-        </Suspense>
     </Fragment>],
     'copyrights': ['©️ Tekijänoikeudet', <Fragment>
         <div className='p-3'>
