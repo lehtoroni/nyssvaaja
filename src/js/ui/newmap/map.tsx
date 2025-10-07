@@ -90,6 +90,8 @@ export default function NysseMapNew(props: {}) {
         }));
         
         let hadInitialGps = false;
+        let userHasMoved = false;
+        
         const gpsLocation: LatLngExpression = [0, 0];
         const markerGps = L.marker(gpsLocation, {
             icon: ICON_GPS
@@ -108,7 +110,9 @@ export default function NysseMapNew(props: {}) {
             gpsLocation[1] = position.coords.longitude;
             
             if (!hadInitialGps) {
-                map.flyTo([position.coords.latitude, position.coords.longitude], 15);
+                if (!userHasMoved) {
+                    map.flyTo([position.coords.latitude, position.coords.longitude], 15, { animate: false });
+                }
                 hadInitialGps = true;
             }
             
@@ -117,6 +121,10 @@ export default function NysseMapNew(props: {}) {
         }, {
             enableHighAccuracy: true,
             maximumAge: 3000
+        });
+        
+        map.addEventListener('move', () => {
+            userHasMoved = true;
         });
         
         
