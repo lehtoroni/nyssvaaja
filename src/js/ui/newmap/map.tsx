@@ -219,6 +219,45 @@ export default function NysseMapNew(props: {}) {
                             `);
                         
                         let shownPath: Polyline | null = null;
+                        let tripUpdateTimeout: any = null;
+                        
+                        const updateRouteInfo = () => {
+                            findRouteDetails(veh.headsign, parseInt(veh.direction), veh.tripDate, veh.tripTime)
+                                .then(trip => {
+                                    
+                                    if (!trip) {
+                                        console.error(`fuzzy trip search failed for ${veh.headsign}`);
+                                        return;
+                                    }
+                                    
+                                    for (const stopTime of trip.stoptimesForDate) {
+                                        
+                                        const stopMarker = stopMarkers.get(stopTime.stop.gtfsId);
+                                        if (!stopMarker) continue;
+                                        
+                                        if ((((stopTime.serviceDay*1000 + stopTime.realtimeDeparture*1000) - Date.now())/1000/60) > 0) {
+                                            stopMarker.getTooltip()?.setContent(`<div class='x-map-stop-tooltip'>
+                                                <b>${stopTime.stop.name}</b> <br/>
+                                                ${(((stopTime.serviceDay*1000 + stopTime.realtimeDeparture*1000) - Date.now())/1000/60).toFixed(0)} min
+                                            </div>`);
+                                        } else {
+                                            if (stopMarker.getTooltip()) {
+                                                stopMarker.unbindTooltip();
+                                                stopMarker.getTooltip()?.remove();
+                                            }
+                                        }
+                                        
+                                    }
+                                    
+                                })
+                                .catch(err => {
+                                    console.error(err);
+                                })
+                                .finally(() => {
+                                    tripUpdateTimeout = setTimeout(() => updateRouteInfo(), 1000*10);
+                                })
+                        }
+                        
                         findRouteDetails(veh.headsign, parseInt(veh.direction), veh.tripDate, veh.tripTime)
                             .then(trip => {
                                 
@@ -267,6 +306,9 @@ export default function NysseMapNew(props: {}) {
                             .catch(err => {
                                 console.error(err);
                             })
+                            .finally(() => {
+                                tripUpdateTimeout = setTimeout(() => updateRouteInfo(), 1000*10);
+                            })
                         
                         m.bindPopup(popupBus).openPopup();
                         
@@ -285,6 +327,10 @@ export default function NysseMapNew(props: {}) {
                                 m.setOpacity(1);
                                 m.unbindTooltip();
                                 m.getTooltip()?.remove();
+                            }
+                            
+                            if (tripUpdateTimeout !== null) {
+                                clearTimeout(tripUpdateTimeout);
                             }
                             
                             console.log('remove popup');
