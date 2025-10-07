@@ -1,7 +1,7 @@
 import { h } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { IRealtimeVehicle } from '../newmap/map';
-import { RemixIcon } from 'src/js/util';
+import { RemixIcon } from '../../util';
 
 export default function NysseOverallSituation(props: { feed: string }) {
     
