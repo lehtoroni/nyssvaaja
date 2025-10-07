@@ -3,41 +3,43 @@
 ![](https://shields.io/github/issues/lehtoroni/nyssvaaja)
 
 
-# Nyssvaaja
+# 🚍️ Nyssvääjä
 
 ![](https://lehtodigital.fi/f/ukuse)
 
-**🗺️ Uusimmassa versiossa mukana myös reaaliaikakartta!**
+## Mikä? Miksi? Mitä?
+Nyssvääjä on Nyssen reaaliaikaista joukkoliikennedataa käyttävä ja näyttävä pysäkkiaikataulunäyttötyökalu, joka kokoaa valituista pysäkeistä minimalistisen infonäytön. Toiselta välilehdeltä löytyy kartta, jolta bussien ja ratikoiden liikkeet näkee reaaliajassa.
 
-Nyssvaaja (aka Nyssvääjä) on Tampereen seudun joukkoliikenteen pysäkkiaikataulunäyttötyökalu,
-joka kokoaa valituista pysäkeistä minimalistisen infonäytön.
-Tarkoitus on lähinnä toimia henkilökohtaisessa käytössä
-Nyssen oman mobiilisovelluksen korvaajana nopeissa aikataulujen ja bussien sijaintien tarkistustapauksissa (...etenkin kun on kävelemässä loskasäässä kohti pysäkkiä todetakseen vuoron juuri peruuntuneen).
+Nyssvääjän tarkoitus on toimia (Nyssen omaa mobiilisovellusta) kevyempänä välineenä, jolla juuri minua kiinnostavat bussien tuloajat ja sijainnit saa auki nopeasti (myös loskasäässä kävellessä kohti pysäkkiä todetakseen vuoron olevan ratikkatyömaan takia myöhässä 25 minuuttia).
 
-Digitransitin rajapinta syö nykyään api-avaimia, joten päätin kirjoittaa koko virityksen uusiksi. Tässä rewritessä käytössä mm.
-- [Preact](https://github.com/preactjs/preact)
-- [Bootstrap 5](https://github.com/twbs)
-- [Express](https://github.com/expressjs/express)
-- [Digitransit API](https://digitransit.fi/en/developers/apis/)
-- [Leaflet](https://leafletjs.com/)
+Nyssvääjä käyttää [Digitransitin](https://digitransit.fi/en/developers/apis/) rajapinnasta saatavaa avointa dataa. Suunnitteilla on mahdollistaa myös muiden Waltti- ja HSL-alueiden tietojen näyttäminen.
 
-Valmiiksi hostattu versio löytyy osoitteesta [nyssvaaja.lehtodigital.fi](https://nyssvaaja.lehtodigital.fi).
+**Jos haluat lähinnä käyttää Nyssvääjää ilman teknistä osaamista, suuntaa osoitteeseen [nyssvaaja.lehtodigital.fi](https://nyssvaaja.lehtodigital.fi).**
+
+### Kaikki ominaisuudet
+- 🚏 **Pysäkkimonitori**, johon voit valita haluamasi määrän pysäkkejä.
+- 🗺️ **Live-kartta**, josta näet bussit, reitit, pysäkit ja aikataulutilanteen. Voit myös filtteröidä näkyviin vain tietyt linjat.
+- ⚠️ **Häiriötiedottenäkymä**, joka näyttää kaikki voimassaolevat häiriötiedotteet.
+- 🕰️ **Yleistilannenäkymä**, joka listaa kaikki bussi- ja ratikkalinjat myöhässä-etuajassa-tiedon mukaan.
+- 🔗 **Näkymän valinnat tallentuvat URL-osoitteeseen** #-osan jälkeen. Voit lisätä luomasi näytön esim. kirjanmerkkeihin tai puhelimen aloitusnäyttöön. (Muista päivittää kirjanmerkki tai kuvake aina kun teet muutoksia!)
 
 ## In English
-This is just a random quick project that I wrote
-for quickly checking a predefined set of bus stop schedules with realtime prediction.
-The project simply queries for the selected stops from the [Digitransit](https://digitransit.fi/en/developers/) API,
-and displays the data as a neat and minimalistic set of small tables.
-
-This rewrite uses Preact and Bootstrap on the frontend, and a simple Express server as a proxy to hide the Digitransit API key.
+Nyssvääjä is The minimal live bus schedule monitor for anyone living in Tampere, Finland. Predefine a set of bus stops that you are interested in, add the URL to your home screen, and enjoy having a quick shortcut to bus schedules.
 
 You can find a hosted version of the tool on [nyssvaaja.lehtodigital.fi](https://nyssvaaja.lehtodigital.fi).
 
+## Used technologies
+- [Preact](https://github.com/preactjs/preact)
+- [Leaflet](https://leafletjs.com/)
+- [Bootstrap 5](https://github.com/twbs)
+- [Express](https://github.com/expressjs/express)
+- [Digitransit API](https://digitransit.fi/en/developers/apis/)
+
 ## Host-it-Yourself
-In order to use this piece of bubblegum (pardon the Finnish phrase, "purkkaviritys"), go grab yourself an [API key](https://digitransit.fi/en/developers/api-registration/) for the Digitransit API. Then follow the steps:
+In order to use this piece of code-held-together-with-bubblegum (pardon the Finnish phrase, "purkkaviritys"), go grab yourself an [API key](https://digitransit.fi/en/developers/api-registration/) for the Digitransit API. Then follow the steps:
 
 1. Clone the repo
-2. Install the dependencies with `npm install`
+2. Install the dependencies with `npm install` (you'll need Node LTS 20/22 or similar)
 3. Start the server with `npm start`. This will also build the frontend.
     - Configure with arguments:
       - `--apiKey=...` - set your API key (**required**)
@@ -52,12 +54,17 @@ It is highly recommended to run the app behind a reverse proxy.
 ## License
 MIT
 
-
-## mOAR picSTURES
+## Screenshots
 The newest version also includes a map!
 
-![](https://lehtodigital.fi/f/NRazk)
+![](https://lehtodigital.fi/f/GJa1r)
 
-![](https://lehtodigital.fi/f/fsb2G)
+![](https://lehtodigital.fi/f/6QeMc)
 
-![](https://lehtodigital.fi/f/i8K3K)
+![](https://lehtodigital.fi/f/dNOTz)
+
+<p float="left">
+<img src="https://lehtodigital.fi/f/JCvHR" width="200">
+<img src="https://lehtodigital.fi/f/FkGtC" width="200">
+<img src="https://lehtodigital.fi/f/voreI" width="200">
+</p>
