@@ -45,6 +45,13 @@ export default function NysseOverallSituation(props: { feed: string }) {
         </p>
         
         <hr/>
+        
+        <p>
+            <b>{((vehicles.filter(veh => Math.abs(veh.delay) < 2).length / vehicles.length)*100).toFixed(1)} %</b><br/> 
+            seuratuista kulkupeleistä on ajallaan
+        </p>
+        
+        <hr/>
     
         <div className='nyssvaaja-button-pill mb-4'>
             <button
