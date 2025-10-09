@@ -1,30 +1,10 @@
-import { h } from 'preact';
+import { Fragment, h } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
-
-export type IGenericAlertEntity = 
-    { __typename: 'Stop', gtfsId: string, name: string, code: string }
-    | { __typename: 'Route', gtfsId: string, shortName: string, longName: string }
-    | { __typename: 'StopOnRoute', route: { gtfsId: string }, stop: { gtfsId: string } }
-    | { __typename: 'StopOnTrip', trip: { gtfsId: string }, stop: { gtfsId: string } }
-    | { __typename: 'Agency', gtfsId: string }
-    | { __typename: 'Pattern', headsign: string }
-    | { __typename: 'RouteType', routeType: string }
-    | { __typename: 'Trip', gtfsId: string, tripShortName: string, routeShortName: string }
-    | { __typename: 'Unknown' | string };
-
-export type IGenericAlert = {
-    id: string,
-    effectiveStartDate: number,
-    effectiveEndDate: number,
-    alertDescriptionText: string,
-    alertHeaderText: string,
-    alertSeverityLevel: string,
-    entities: IGenericAlertEntity[]
-};
+import { IAlert, IGenericAlertEntity } from 'src/js/app';
 
 export default function NysseAlerts(props: { feed: string }) {
     
-    const [alerts, setAlerts] = useState<IGenericAlert[]>([]);
+    const [alerts, setAlerts] = useState<IAlert[]>([]);
     
     useEffect(() => {
         
@@ -33,7 +13,7 @@ export default function NysseAlerts(props: { feed: string }) {
                 .then(x => x.json())
                 .then(raw => {
                     
-                    const alertsRaw: IGenericAlert[] = raw?.data?.alerts ?? [];
+                    const alertsRaw: IAlert[] = raw?.data?.alerts ?? [];
                     setAlerts(alertsRaw);
                     
                 })
@@ -56,8 +36,7 @@ export default function NysseAlerts(props: { feed: string }) {
         <h1 className='text-center'>⚠️ Häiriötiedotteet</h1>
         
         <p className='text-center'>
-            Huom! Tämä toiminto on vasta <u>kokeiluvaiheessa</u>.
-            Varmista oikeat tiedot aina Nyssen virallisesta reittioppaasta.
+            Huom! Tämä on kokeellinen ominaisuus. Tarkista oikeat tiedot aina Nyssen virallisesta reittioppaasta.
         </p>
         
         <hr/>
@@ -69,13 +48,47 @@ export default function NysseAlerts(props: { feed: string }) {
                 <h4>{al.alertHeaderText}</h4>
                 <p>{al.alertDescriptionText}</p>
                 <p><b>{new Date(al.effectiveStartDate*1000).toLocaleString('fi')}</b> – <b>{new Date(al.effectiveEndDate*1000).toLocaleString('fi')}</b></p>
-                <details>
-                    <summary>Lisätietoja (nörteille)</summary>
-                    <div style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(al.entities, null, 2)}</div>
-                </details>
+                <p>{(al.entities ?? []).map((en, i) =>
+                    <AlertEntityDisplay entity={en} key={en.__typename + '' + i}/>
+                )}</p>
             </div>
         )}
         
     </div>;
     
+}
+
+export function AlertEntityDisplay(props: {
+    entity: IGenericAlertEntity
+}) {
+    const {entity} = props;
+    return <span className='badge text-bg-danger me-1'>
+        {entity.__typename == 'Route' && <Fragment>
+            🚍️ {entity.shortName} {entity.longName}
+        </Fragment>}
+        {entity.__typename == 'Stop' && <Fragment>
+            🚏 {entity.code} {entity.name}
+        </Fragment>}
+        {entity.__typename == 'Trip' && <Fragment>
+            🚌 {entity.routeShortName} {entity.gtfsId}
+        </Fragment>}
+        {entity.__typename == 'StopOnRoute' && <Fragment>
+            Pysäkki {entity.stop.gtfsId} reitillä {entity.route.gtfsId} 
+        </Fragment>}
+        {entity.__typename == 'StopOnTrip' && <Fragment>
+            Pysäkki {entity.stop.gtfsId} matkalla {entity.trip.gtfsId} 
+        </Fragment>}
+        {entity.__typename == 'Agency' && <Fragment>
+            Matkanjärjestäjä {entity.gtfsId}
+        </Fragment>}
+        {entity.__typename == 'Pattern' && <Fragment>
+            Linja {entity.headsign}
+        </Fragment>}
+        {entity.__typename == 'RouteType' && <Fragment>
+            Kulkuväline {entity.routeType}
+        </Fragment>}
+        {entity.__typename == 'Unknown' && <Fragment>
+            ?
+        </Fragment>}
+    </span>;
 }
