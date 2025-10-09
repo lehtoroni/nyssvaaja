@@ -216,41 +216,50 @@ app.post('/api/getStopsData', (req, res) => {
     
     nysseQuery(`{
         ${stopIds.map((id, i) => `${id.replace(':', '_')}: stop(id: "${id}") {
-            gtfsId,
-            name,
-            vehicleMode,
-            alerts {
-                effectiveStartDate,
-                effectiveEndDate,
-                alertDescriptionText,
-                alertHeaderText,
-                alertSeverityLevel
-            }
-            routes {
-                gtfsId,
-                shortName
-            }
-            stoptimesWithoutPatterns(numberOfDepartures: ${maxRows}) {
-                serviceDay
-                scheduledArrival
-                scheduledDeparture
-                realtimeArrival
-                realtimeDeparture
-                trip {
-                    alerts {
-                        effectiveStartDate,
-                        effectiveEndDate,
-                        alertDescriptionText,
-                        alertHeaderText,
-                        alertSeverityLevel
-                    }
-                    route {
-                        shortName
-                    }
-                }
-                headsign
-            }
+            ...stopFields
         }`).join('\n')}
+    }
+
+    fragment stopFields on Stop {
+        gtfsId,
+        name,
+        vehicleMode,
+        alerts {
+            ...alertFields
+        }
+        routes {
+            gtfsId,
+            shortName,
+            alerts {
+                ...alertFields
+            }
+        }
+        stoptimesWithoutPatterns(numberOfDepartures: ${maxRows}) {
+            serviceDay
+            scheduledArrival
+            scheduledDeparture
+            realtimeArrival
+            realtimeDeparture
+            trip {
+                alerts {
+                    ...alertFields
+                }
+                route {
+                    gtfsId,
+                    shortName
+                }
+            }
+            headsign
+        }
+    }
+
+    fragment alertFields on Alert {
+        id,
+        effectiveStartDate,
+        effectiveEndDate,
+        alertDescriptionText,
+        alertHeaderText,
+        alertSeverityLevel
     }`)
         .then(stopsData => {
             res.json(stopsData);

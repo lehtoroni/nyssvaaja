@@ -1,6 +1,6 @@
 import { Fragment, h } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
-import { IMonitorSettings, IStopRealtimeData } from '../app';
+import { IAlert, IMonitorSettings, IStopRealtimeData } from '../app';
 import { getStopData, getTimeString, getDueMinutes, getStopsData, RemixIcon } from '../util';
 
 export const VEHICLE_ICON: Record<string, string> = {
@@ -132,6 +132,10 @@ export function NysseStop(props: { data: IStopRealtimeData, showInitial?: number
     const canBeExpanded = props.data.stoptimesWithoutPatterns.length > showInitial;
     const [isExpanded, setExpanded] = useState<boolean>(false);
     
+    const alertsByRoute: Record<string, IAlert[]> = Object.fromEntries(
+        (props.data.routes ?? []).map((route, i) => [route.gtfsId, route.alerts])
+    );
+    
     return <div className='nyssvaaja-stop-monitor-wrapper'>
         <div className='x-stop-monitor' data-vehicle-mode={(props.data.vehicleMode ?? '').toUpperCase()}>
             <h3>
@@ -152,24 +156,32 @@ export function NysseStop(props: { data: IStopRealtimeData, showInitial?: number
                         <tr>
                             <td>{VEHICLE_ICON[props.data.vehicleMode ?? '']}</td>
                             <td>📍</td>
+                            <td></td>
                             <td className='text-end'>⌚️</td>
                             <td className='text-end'>⏳️</td>
                         </tr>
-                        <tr className='x-divider'><td colSpan={4}><hr/></td></tr>
+                        <tr className='x-divider'><td colSpan={5}><hr/></td></tr>
                     </thead>
                     <tbody>
                         {props.data.stoptimesWithoutPatterns
                             .filter((t, n) => isExpanded || (n < showInitial))
-                            .map(stopTime => 
+                            .map(stopTime =>  
                                 <Fragment>
                                     <tr>
                                         <td style={{ width: '3em;' }}><span className='x-headsign'>{stopTime.trip?.route?.shortName ?? '?'}</span></td>
                                         <td>
                                             {stopTime.headsign ?? '?'}
+                                        </td>
+                                        <td className='text-end'>
                                             {(stopTime.trip?.alerts ?? []).length > 0
-                                                && <span className='ms-2' onClick={e => {
+                                                && <span className='ms-2 route-alert' onClick={e => {
                                                     e.preventDefault();
                                                     alert(`${(stopTime.trip?.alerts ?? []).map(al => `${al.alertHeaderText}\n\n${al.alertDescriptionText}\n\n---`).join('\n\n')}`);
+                                                }}>⚠️</span>}
+                                            {(alertsByRoute[stopTime.trip?.route?.gtfsId ?? ''] ?? []).length > 0
+                                                && <span className='ms-2 route-alert' onClick={e => {
+                                                    e.preventDefault();
+                                                    alert(`${alertsByRoute[stopTime.trip?.route?.gtfsId ?? ''].map(al => `${al.alertHeaderText}\n\n${al.alertDescriptionText}\n\n---`).join('\n\n')}`);
                                                 }}>⚠️</span>}
                                         </td>
                                         <td className='text-end' style={{ width: '4em' }}>
@@ -179,7 +191,7 @@ export function NysseStop(props: { data: IStopRealtimeData, showInitial?: number
                                             <b>{getDueMinutes(stopTime)}</b>
                                         </td>
                                     </tr>
-                                    <tr className='x-divider'><td colSpan={4}><hr/></td></tr>
+                                    <tr className='x-divider'><td colSpan={5}><hr/></td></tr>
                                 </Fragment>
                             )}
                     </tbody>
