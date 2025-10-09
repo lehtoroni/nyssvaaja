@@ -17,20 +17,36 @@ export interface IStopData {
     lon: number;
 }
 
+export type IGenericAlertEntity = 
+    { __typename: 'Stop', gtfsId: string, name: string, code: string }
+    | { __typename: 'Route', gtfsId: string, shortName: string, longName: string }
+    | { __typename: 'StopOnRoute', route: { gtfsId: string }, stop: { gtfsId: string } }
+    | { __typename: 'StopOnTrip', trip: { gtfsId: string }, stop: { gtfsId: string } }
+    | { __typename: 'Agency', gtfsId: string }
+    | { __typename: 'Pattern', headsign: string }
+    | { __typename: 'RouteType', routeType: string }
+    | { __typename: 'Trip', gtfsId: string, tripShortName: string, routeShortName: string }
+    | { __typename: 'Unknown' };
+
+export interface IAlert {
+    id: string,
+    effectiveStartDate: number,
+    effectiveEndDate: number,
+    alertDescriptionText: string,
+    alertHeaderText: string,
+    alertSeverityLevel: string,
+    entities?: IGenericAlertEntity[]
+}
+
 export interface IStopRealtimeData {
     gtfsId: string;
     name: string;
     vehicleMode: string | null;
-    alerts: {
-        effectiveStartDate: number,
-        effectiveEndDate: number,
-        alertDescriptionText: string,
-        alertHeaderText: string,
-        alertSeverityLevel: string
-    }[];
+    alerts: IAlert[];
     routes: {
         gtfsId: string,
-        shortName: string
+        shortName: string,
+        alerts: IAlert[]
     }[];
     stoptimesWithoutPatterns: {
         serviceDay: number;
@@ -40,15 +56,10 @@ export interface IStopRealtimeData {
         realtimeDeparture: number;
         trip?: {
             route?: {
+                gtfsId?: string;
                 shortName?: string;
             };
-            alerts: {
-                effectiveStartDate: number,
-                effectiveEndDate: number,
-                alertDescriptionText: string,
-                alertHeaderText: string,
-                alertSeverityLevel: string
-            }[];
+            alerts: IAlert[]
         };
         headsign?: string;
     }[];
@@ -93,13 +104,10 @@ export enum AppView {
 
 export default function App(props: {}) {
     
-    const [isMapOnly, setMapOnly] = useState<boolean>((window.location.hash ?? '') == '#kartta');
-    
     const [appView, setAppView] = useState<AppView>(AppView.MONITORS);
     
     const [isChoosing, setChoosing] = useState<boolean>(false);
     const [isEditing, setEditing] = useState<boolean>(false);
-    
     
     const [filteredLines, setFilteredLines] = useState<string[] | null>(initialSettings.mapLines || null);
     const [monitorStops, setMonitorStops] = useState<string[]>(initialSettings.stops || []);
