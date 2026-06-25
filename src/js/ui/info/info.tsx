@@ -8,7 +8,7 @@ const NysseAlerts = lazy(() => import('./alerts'));
 const NysseOverallSituation = lazy(() => import('./overall'));
 
 const VIEWS: Record<string, [string, any]> = {
-    'alerts': ['⚠️ Häiriötiedotteet', <Fragment>
+    'alerts': ['⚠️ Häiriötiedotteet ja perutut', <Fragment>
         <Suspense fallback={<p>Ladataan...</p>}>
             <NysseAlerts feed='tampere'/>
         </Suspense>
@@ -63,7 +63,7 @@ const VIEWS: Record<string, [string, any]> = {
             <div className='text-center'>
                 <h1>©️ Tekijänoikeudet</h1>
                 
-                <p className='mb-1'>Nyssvääjä &copy; Roni Lehto 2025</p>
+                <p className='mb-1'>Nyssvääjä &copy; Roni Lehto {new Date().getFullYear()}</p>
                 <p className='mb-1'><a href='https://lehtodigital.fi/'>www.lehtodigital.fi</a></p>
                 <p>Forkkaa <a href='https://github.com/lehtoroni/nyssvaaja'>GitHubissa</a>!</p>
             </div>

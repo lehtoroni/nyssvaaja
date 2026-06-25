@@ -164,6 +164,51 @@ async function nysseQuery(query) {
     
 }
 
+app.get('/api/getCanceledTrips', asyncHandler(async (req, res) => {
+    
+    if (queryCache.has(req.params)) {
+        return res.json(queryCache.get(req.path));
+    }
+    
+    const data = await nysseQuery(`{
+  canceledTrips(first: 100) {
+    totalCount
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+    edges {
+      node {
+        serviceDate
+        trip {
+          gtfsId
+          routeShortName
+          tripHeadsign
+        }
+        start {
+          stopLocation {
+            ... on Stop {
+              name
+            }
+          }
+          schedule {
+            time {
+              ... on ArrivalDepartureTime {
+                departure
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}`);
+    
+    queryCache.set(req.path, data, 15);
+    
+    return res.json(data);
+    
+}));
 
 app.get('/api/getAllRoutes', asyncHandler(async (req, res) => {
     
@@ -316,6 +361,9 @@ app.post('/api/getRouteDetails', (req, res) => {
               serviceDay,
               realtimeDeparture,
               scheduledDeparture,
+              realtime,
+              timepoint,
+              pickupType
             }
         }
     }`)

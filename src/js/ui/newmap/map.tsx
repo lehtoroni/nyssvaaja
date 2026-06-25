@@ -11,6 +11,7 @@ import { encodeHTML, findRouteDetails, getAllStops, RemixIcon } from 'src/js/uti
 import { IStopData } from 'src/js/app';
 import { NysseStop, SingleNysseStop } from '../Monitor';
 import { LinePicker } from './linepicker';
+import { BusInstanceMonitor } from 'src/js/ui/newmap/businstance';
 
 let __map: LeafletMap | null = null;
 let __mapState: {
@@ -71,6 +72,8 @@ export default function NysseMapNew(props: {
     
     const {filteredLines, setFilteredLines} = props;
     const [isLinePickerOpen, setLinePickerOpen] = useState<boolean>(false);
+    
+    const [popupBusLine, setPopupBusLine] = useState<any | null>(null);
     
     useEffect(() => {
         
@@ -239,6 +242,8 @@ export default function NysseMapNew(props: {
                             findRouteDetails(veh.headsign, parseInt(veh.direction), veh.tripDate, veh.tripTime)
                                 .then(trip => {
                                     
+                                    setPopupBusLine(trip || null);
+                                    
                                     if (!trip) {
                                         console.error(`fuzzy trip search failed for ${veh.headsign}`);
                                         return;
@@ -274,6 +279,8 @@ export default function NysseMapNew(props: {
                         
                         findRouteDetails(veh.headsign, parseInt(veh.direction), veh.tripDate, veh.tripTime)
                             .then(trip => {
+                                    
+                                setPopupBusLine(trip || null);
                                 
                                 if (shownPath) {
                                     shownPath?.remove();
@@ -331,6 +338,8 @@ export default function NysseMapNew(props: {
                             
                             if (isRemoved) return;
                             isRemoved = true;
+                                    
+                            setPopupBusLine(null);
                             
                             m.unbindPopup();
                             popupBus.remove();
@@ -459,6 +468,8 @@ export default function NysseMapNew(props: {
                 <RemixIcon icon='ri-navigation-line'/>
             </button>
         </div>
+        
+        {popupBusLine && <BusInstanceMonitor trip={popupBusLine}/>}
         
         {(isLinePickerOpen) && <div className='x-map-dialog-dimmer'></div>}
         

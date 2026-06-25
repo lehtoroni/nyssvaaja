@@ -43,6 +43,10 @@ code {
         overflow-y: scroll;
         overflow-x: hidden;
         
+        &:has(.x-floating-map-container) {
+            overflow-y: hidden;
+        }
+        
         .view-sub {
             position: absolute;
             display: grid;
@@ -76,8 +80,9 @@ code {
         display: grid;
         align-items: center;
         grid-template-columns: repeat(3, 1fr);
-        background-color: rgba(0, 0, 0, 0.5);
+        background-color: darken(@bgColor, 10%);
         user-select: none;
+        z-index: 10000;
         
         .menu-item {
             display: flex;
@@ -462,6 +467,143 @@ code {
             color: #036300;
         }
         font-size: 90%;
+    }
+}
+
+.x-floating-details {
+    position: fixed;
+    z-index: 5000;
+    top: 16px;
+    right: 64px;
+    display: block;
+    width: 280px;
+    max-height: calc(100dvh - 100px);
+    overflow-y: scroll;
+    background-color: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(5px);
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    color: black;
+    
+    .x-mobile-handle {
+        display: block;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 8px;
+        
+        .handle {
+            color: rgb(78, 78, 78);
+            font-size: 32px;
+        }
+    }
+    
+    @media screen and (max-width: 600px) {
+        transition: top .5s ease-in-out;
+        
+        width: calc(100dvw - 20px);
+        top: unset;
+        right: unset;
+        
+        top: calc(100dvh - 120px);
+        right: calc(50dvw - calc(calc(100dvw - 20px) / 2));
+        overflow-y: hidden;
+        
+        &[data-open="true"] {
+            top: 96px;
+            max-height: calc(100dvh - 160px);
+            overflow-y: scroll;
+        }
+    }
+    
+    .x-trip-stops {
+        display: grid;
+        grid-template-columns: 1fr;
+        
+        .trip-row {
+            display: grid;
+            grid-template-columns: min-content auto min-content;
+            gap: 8px;
+            
+            .smaller {
+                font-size: 80%;
+            }
+            
+            .stop {
+                display: grid;
+                grid-template-columns: 1fr;
+                grid-template-rows: auto min-content auto;
+                justify-content: center;
+                justify-items: center;
+                .road {
+                    width: 8px;
+                    height: 100%;
+                    background-color: rgb(153, 171, 196);
+                }
+                .icon {
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 50%;
+                    background-color: rgb(95, 121, 156);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    font-weight: bold;
+                    font-size: 14px;
+                    color: white;
+                }
+            }
+            .content {
+                margin-top: 18px;
+                .id {
+                    display: inline-block;
+                    font-family: monospace;
+                    font-size: 12px;
+                    margin-left: 1em;
+                }
+            }
+            .time {
+                margin-top: 18px;
+                color: @bgColor;
+                white-space: nowrap;
+                font-weight: bold;
+                
+                .rawtime {
+                    font-size: 12px;
+                    font-weight: normal;
+                }
+                
+                &[data-realtime="true"] {
+                    .mins {
+                        color: green;
+                    }
+                }
+            }
+            
+            
+            &[data-past="true"] {
+                .road, .icon {
+                    background-color: @bgColor !important;
+                }
+                .content {
+                    color: rgba(0, 0, 0, 0.5);
+                }
+                .time {
+                    color: gray;
+                    font-style: italic;
+                }
+            }
+        }
+    }
+    
+    .headsign {
+        display: inline-block;
+        min-width: 1.5em;
+        text-align: center;
+        background-color: rgb(30, 30, 30);
+        color: rgb(255, 203, 32);
+        padding: 0px 2px;
+        border-radius: 4px;
     }
 }
 
