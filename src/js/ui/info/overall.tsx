@@ -1,11 +1,14 @@
-import { h } from 'preact';
+import { Fragment, h } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { IRealtimeVehicle } from '../newmap/map';
 import { RemixIcon } from '../../util';
 
+
+
 export default function NysseOverallSituation(props: { feed: string }) {
     
     const [vehicles, setVehicles] = useState<IRealtimeVehicle[]>([]);
+    
     const [mode, setMode] = useState<'time' | 'number'>('time');
     
     useEffect(() => {
@@ -15,6 +18,7 @@ export default function NysseOverallSituation(props: { feed: string }) {
             const x = await fetch(`/api/realtime?t=${Date.now()}`);
             const vehiclesRaw: IRealtimeVehicle[] = (await x.json());
             
+            
             setVehicles(mode == 'time'
                 ? vehiclesRaw.toSorted((a, b) => b.delay - a.delay)
                 : vehiclesRaw.toSorted((a, b) => 
@@ -23,6 +27,7 @@ export default function NysseOverallSituation(props: { feed: string }) {
                     || (a.tripTime.localeCompare(b.tripTime))
                 )
             );
+            
             to = setTimeout(() => upd(), 1000*10);
             
         }
@@ -47,12 +52,13 @@ export default function NysseOverallSituation(props: { feed: string }) {
         <hr/>
         
         <p>
-            <b>{((vehicles.filter(veh => Math.abs(veh.delay) < 2).length / vehicles.length)*100).toFixed(1)} %</b><br/> 
-            seuratuista kulkupeleistä on ajallaan
+            <b>{((vehicles.filter(veh => Math.abs(veh.delay) < 1000*60*3).length / vehicles.length)*100).toFixed(1)} %</b><br/> 
+            seuratuista kulkupeleistä poikkeaa aikataulustaan alle 3 minuuttia
         </p>
-        
+    
         <hr/>
     
+        <h2>Aikataulutilanne</h2>
         <div className='nyssvaaja-button-pill mb-4'>
             <button
                 className='x-btn'
