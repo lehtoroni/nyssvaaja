@@ -19,7 +19,7 @@ Nyssvääjä käyttää [Digitransitin](https://digitransit.fi/en/developers/api
 ### Kaikki ominaisuudet
 - 🚏 **Pysäkkimonitori**, johon voit valita haluamasi määrän pysäkkejä.
 - 🗺️ **Live-kartta**, josta näet bussit, reitit, pysäkit ja aikataulutilanteen. Voit myös filtteröidä näkyviin vain tietyt linjat.
-- ⚠️ **Häiriötiedottenäkymä**, joka näyttää kaikki voimassaolevat häiriötiedotteet.
+- ⚠️ **Häiriötiedotenäkymä**, joka näyttää kaikki voimassaolevat häiriötiedotteet.
 - 🕰️ **Yleistilannenäkymä**, joka listaa kaikki bussi- ja ratikkalinjat myöhässä-etuajassa-tiedon mukaan.
 - 🔗 **Näkymän valinnat tallentuvat URL-osoitteeseen** #-osan jälkeen. Voit lisätä luomasi näytön esim. kirjanmerkkeihin tai puhelimen aloitusnäyttöön. (Muista päivittää kirjanmerkki tai kuvake aina kun teet muutoksia!)
 
