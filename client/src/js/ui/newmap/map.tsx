@@ -7,11 +7,11 @@ import { signal } from '@preact/signals';
 import 'leaflet-rotatedmarker';
 import 'leaflet-doubletapdrag';
 import 'leaflet-doubletapdragzoom';
-import { encodeHTML, findRouteDetails, getAllStops, IGenericRoute, RemixIcon } from 'src/js/util';
-import { IStopData } from 'src/js/app';
+import { encodeHTML, findRouteDetails, getAllStops, IGenericRoute, RemixIcon } from '../../util';
+import { IStopData } from '../../app';
 import { NysseStop, SingleNysseStop } from '../Monitor';
 import { LinePicker } from './linepicker';
-import { BusInstanceMonitor } from 'src/js/ui/newmap/businstance';
+import { BusInstanceMonitor } from './businstance';
 
 let __map: LeafletMap | null = null;
 let __mapState: {

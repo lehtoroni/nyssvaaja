@@ -1,7 +1,6 @@
-import { useSignal } from '@preact/signals'
 import { h } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
-import { getAllRoutes, IGenericRoute, RemixIcon } from 'src/js/util';
+import { getAllRoutes, IGenericRoute, RemixIcon } from '../../util';
 
 export function LinePicker(props: {
     initialSelection?: string[] | null,

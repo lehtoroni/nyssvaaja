@@ -1,6 +1,6 @@
 import { Fragment, h } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
-import { IAlert, IGenericAlertEntity } from 'src/js/app';
+import { IAlert, IGenericAlertEntity } from '../../app';
 
 type ICanceledTrip = {
     serviceDate: string,

@@ -1,6 +1,6 @@
 import { h } from 'preact'
 import { Fragment, useState } from 'react';
-import { getDueMinutes, RemixIcon } from 'src/js/util';
+import { getDueMinutes, RemixIcon } from '../../util';
 
 
 export function BusInstanceMonitor(props: {

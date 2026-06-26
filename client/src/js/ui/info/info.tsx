@@ -1,10 +1,10 @@
 import { Fragment, h } from 'preact';
 import { useState } from 'preact/hooks';
 import { lazy, Suspense } from 'preact/compat';
-import { capitalizeFirst, RemixIcon } from 'src/js/util';
+import { capitalizeFirst, RemixIcon } from '../../util';
 import { useMemo } from 'react';
 import { useEffect } from 'react';
-import { Spinner } from 'src/js/app';
+import { Spinner } from '../../app';
 
 const LegalInfo = lazy(() => import('./legal'));
 const NysseAlerts = lazy(() => import('./alerts'));

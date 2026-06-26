@@ -1,13 +1,13 @@
 {
-  "name": "nyssvaaja-neo-server",
-  "version": "0.0.1",
+  "name": "nyssvaaja-server",
+  "version": "2.2.1",
   "description": "Server module for Nyssvääjä",
   "main": "dist/index.js",
   "bin": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsc && node dist/index.js",
+    "dev": "tsc && node dist/index.js;",
     "dev2": "concurrently \"tsc -w\" \"nodemon --watch dist dist/index.js\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
