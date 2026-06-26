@@ -173,6 +173,7 @@ export default function NysseMapNew(props: {
         
         let hadInitialGps = false;
         let userHasMoved = false;
+        let hasJumpedGps = false;
         
         const gpsLocation: LatLngExpression = [0, 0];
         const markerGps = L.marker(gpsLocation, {
@@ -194,6 +195,7 @@ export default function NysseMapNew(props: {
             if (!hadInitialGps) {
                 if (!userHasMoved) {
                     map.flyTo([position.coords.latitude, position.coords.longitude], 15, { animate: false });
+                    hasJumpedGps = true;
                 }
                 hadInitialGps = true;
             }
@@ -219,7 +221,11 @@ export default function NysseMapNew(props: {
                 const latC = rawData.reduce((p, c) => p+c.lat, 0)/rawData.length;
                 const lonC = rawData.reduce((p, c) => p+c.lon, 0)/rawData.length;
                 setMapCenter([latC, lonC]);
-                __map?.panTo([latC, lonC]);
+                
+                if (!hasJumpedGps) {
+                    __map?.panTo([latC, lonC]);
+                }
+                
                 setLoaded(true);
                 
                 for (const stop of rawData) {
