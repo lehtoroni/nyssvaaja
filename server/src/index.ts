@@ -10,43 +10,26 @@ import bodyParser from 'body-parser';
 import rateLimit from 'express-rate-limit';
 import NodeCache from 'node-cache';
 
-import GtfsRealtimeBindings from 'gtfs-realtime-bindings';
 import { IFeedInfo, IRealtimeVehicle } from './common/types';
-import { gtfsEntityToGeneral, siriEntityToGeneral } from './module/util';
+import { initRealtime } from './module/realtime';
+import { GTFS_ENDPOINTS, REALTIME_FEEDS_WALTTI } from './module/magic';
 
 const args = argsParser(process.argv);
 
-const apiKeyFile = path.join(__dirname, '..', 'apikey.txt');
-const walttiKeyFile = path.join(__dirname, '..', 'waltti.txt');
+const apiKeyFile = path.join(process.cwd(), 'apikey.txt');
+const walttiKeyFile = path.join(process.cwd(), 'waltti.txt');
+
+const isBundled = !!((process as any).pkg);
+const VERSION = isBundled
+    ? (JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8')).version || 'unknown')
+    : 'dev';
 
 const port = args.port ?? 9999;
 const apiKey = args.apiKey ?? (fs.existsSync(apiKeyFile) ? fs.readFileSync(apiKeyFile, 'utf8').trim() : null);
 const walttiKeyRaw = args.walttiKey ?? (fs.existsSync(walttiKeyFile) ? fs.readFileSync(walttiKeyFile, 'utf8').trim() : null);
 const walttiKey = Buffer.from(walttiKeyRaw, 'utf8').toString('base64');
 
-const walttiCity = [
-    'lahti',
-    'joensuu',
-    'jyvaskyla',
-    'oulu'
-];
-
-//const baseUrl = `https://api.digitransit.fi/routing/v1/routers/waltti/index/graphql`;
-
-const endpoints = new Map<string, string>(Object.entries({
-    'HSL': `https://api.digitransit.fi/routing/v2/hsl/gtfs/v1`,
-    'waltti': `https://api.digitransit.fi/routing/v2/waltti/gtfs/v1`,
-    'finland': `https://api.digitransit.fi/routing/v2/finland/gtfs/v1`,
-    'varely': `https://api.digitransit.fi/routing/v2/varely/gtfs/v1`
-}));
-
-const baseUrl = `https://api.digitransit.fi/routing/v2/waltti/gtfs/v1`;
-
-const realtimeDelay = (args.realtimeDelay ?? 3) * 2000;
-const realtimeMulti = new Map<string, any>();
-
-let cachedRealtimeData = {};
-updateRealtime();
+const endpoints = new Map<string, string>(Object.entries(GTFS_ENDPOINTS));
 
 let feedsAndAgencies = new Map<string, Map<string, IFeedInfo>>();
 updateDaily().catch(err => console.error(err));
@@ -57,6 +40,7 @@ const queryCache = new NodeCache({
     maxKeys: 1000
 });
 
+const realtime = initRealtime({ VERSION, apiKey, walttiKey });
 
 async function updateDaily() {
     
@@ -125,71 +109,6 @@ function getFeeds() {
     );
 }
 
-async function updateRealtime() {
-    
-    /*
-    
-    try {
-        
-        const cityOut: IRealtimeVehicle[] = [];
-        
-        const x = await fetch(`https://realtime.hsl.fi/realtime/vehicle-positions/v2/hsl`, {
-            headers: { 'User-Agent': `Nyssvaaja` }
-        });
-        const raw = await x.arrayBuffer();
-        const feed = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(new Uint8Array(raw));
-        
-        cityOut.push(...feed.entity.map(gtfsEntityToGeneral).filter(en => !!en));
-        
-        realtimeMulti.set('helsinki', cityOut);
-        
-    } catch (err) {
-        console.error(err);
-    }
-    
-    try {
-        
-        for (const city of walttiCity) {
-            
-            const cityOut: IRealtimeVehicle[] = [];
-            
-            const raw = await walttiQuery(`https://data.waltti.fi/${encodeURIComponent(city)}/api/gtfsrealtime/v1.0/feed/vehicleposition`);
-            const feed = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(new Uint8Array(raw));
-            
-            cityOut.push(...feed.entity.map(gtfsEntityToGeneral));
-            
-            realtimeMulti.set(city, cityOut);
-            
-        }
-        
-    } catch (err) {
-        console.error(err);
-    }
-    
-    try {
-        
-        const x = await fetch('http://data.itsfactory.fi/siriaccess/vm/json');
-        const realtime = await x.json();
-        
-        if (!(realtime?.Siri?.ServiceDelivery?.VehicleMonitoringDelivery ?? null)) {
-            throw new Error('Data format changed, or error?');
-        }
-        
-        const vehicles = realtime?.Siri?.ServiceDelivery?.VehicleMonitoringDelivery[0].VehicleActivity;
-        cachedRealtimeData = vehicles.map((v: any) => siriEntityToGeneral(v))
-        
-    } catch (err) {
-        console.error(`Error while fetching realtime data:`);
-        console.error(err);
-    }
-    
-    setTimeout(updateRealtime, realtimeDelay);
-    */
-    
-    
-    
-}
-
 if (!apiKey || apiKey == '') {
     throw new Error(`Please provide an API key using --apiKey=... or using apikey.txt in the root folder`);
 }
@@ -198,12 +117,11 @@ if (!walttiKeyRaw || walttiKeyRaw == '') {
     throw new Error(`Please provide a Waltti id:secret pair using --walttiKey=clientid:secret or using waltti.txt in the root folder`);
 }
 
-console.log(`Nyssvääjä² (c) 2026`);
+console.log(`Nyssvääjä² v${VERSION} (c) Roni Lehto 2026`);
 
 const app = express();
 
 app.set('trust proxy', 1);
-
 app.use(bodyParser.json({ type: 'application/json' }));
 app.use(bodyParser.text({ type: '*/*' }));
 
@@ -214,21 +132,10 @@ app.use(rateLimit({
     legacyHeaders: false
 }));
 
-async function walttiQuery(url: string) {
-    const x = await fetch(url, {
-        headers: {
-            'Authorization': `Basic ${walttiKey}`,
-            'User-Agent': `Nyssvaaja`
-        }
-    });
-    const raw = await x.arrayBuffer();
-    return raw;
-}
-
 async function nysseQuery(query: string, endpointUrl?: string) {
     
     if (!endpointUrl) {
-        endpointUrl = baseUrl;
+        endpointUrl = endpoints.get('waltti') || '';
     }
     
     const x = await fetch(endpointUrl, {
@@ -252,7 +159,7 @@ async function nysseQuery(query: string, endpointUrl?: string) {
 app.get('/api/getFeeds', asyncHandler(async (req, res) => {
     res.json({
         feeds: getFeeds(),
-        realtime: [...realtimeMulti.keys(), 'tampere', 'hsl', 'linkki']
+        realtime: [...REALTIME_FEEDS_WALTTI, 'hsl']
     });
 }));
 
@@ -465,6 +372,8 @@ app.post('/api/getRouteDetails/:feed', (req, res) => {
     const timeMinutes = parseInt(timeRef.substring(2, 4));
     const timeRefSeconds = timeHours*60*60 + timeMinutes*60;
     
+    //console.log(`fuzzyTrip(route: "${routeHeadsign}", direction: ${direction}, date: ${JSON.stringify(dateRef)}, time: ${timeRefSeconds})`);
+    
     nysseQuery(`{
         fuzzyTrip(route: "${routeHeadsign}", direction: ${direction}, date: ${JSON.stringify(dateRef)}, time: ${timeRefSeconds}) {
             tripShortName,
@@ -500,10 +409,6 @@ app.post('/api/getRouteDetails/:feed', (req, res) => {
             res.json({ error: `${err}` });
         })
 })
-
-
-let cachedAllStops = null;
-let timeCachedAllStops = 0;
 
 app.get('/api/getAllStops/:feed', asyncHandler(async (req, res) => {
     
@@ -614,29 +519,21 @@ app.get('/api/getAlerts/:feed', asyncHandler(async (req, res) => {
 app.get('/api/realtime/:feed', asyncHandler(async (req, res) => {
     
     let feed = req.params.feed || 'tampere';
-    if (feed == 'FOLI') feed = 'turku';
-    if (feed == 'LINKKI') feed = 'jyvaskyla';
-    if (feed == 'HSL') feed = 'helsinki';
+    if (feed.toLowerCase() == 'turku') feed = 'FOLI';
+    if (feed.toLowerCase() == 'jyvaskyla') feed = 'LINKKI';
+    if (feed.toLowerCase() == 'helsinki') feed = 'HSL';
     
-    const feedEndpoint = endpoints.get(getFeeds()[feed]);
-    if ((!isValidFeed(feed) || !feedEndpoint) && !(walttiCity.includes(feed.toLowerCase())) && !(realtimeMulti.has(feed.toLowerCase()))) {
-        res.status(400).json({ error: `Illegal feed '${feed}'` });
-        return;
-    }
-    
-    if (feed == 'tampere') {
-        res.json(cachedRealtimeData);
-    } else if (realtimeMulti.has(feed.toLowerCase())) {
-        res.json(realtimeMulti.get(feed.toLowerCase()));
-    } else {
-        res.json([]);
-    }
-    
+    const data = await realtime.getRealtimeData(feed);
+    res.json(data);
     
 }));
 
 // serve built frontend
-app.use(express.static(path.join(__dirname, '..', 'dist')));
+app.use(express.static(
+    isBundled
+        ? path.join(__dirname, '../front-dist')
+        : path.join(__dirname, '..', '..', 'client', 'dist')
+));
 
 app.listen(port, () => {
     console.log(`Listening on :${port}`);

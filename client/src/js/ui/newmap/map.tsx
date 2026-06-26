@@ -294,8 +294,16 @@ export default function NysseMapNew(props: {
             for (const veh of vehicles) {
                 
                 //console.log(veh.walttiRouteId, allRoutes);
-                const vehRoute = allRoutes[props.feed + ':' + (veh.walttiRouteId || veh.headsign)];
-                const fuzzyHeadsign = veh.walttiRouteId || veh.headsign;
+                
+                const vehRefInitial = veh.vehicleRef.split('_')[0];
+                let routeId = veh.walttiRouteId || '';
+                // stupid hack for Tampere's route ID weirdness.... reeEEEE
+                if (routeId.endsWith(vehRefInitial)) {
+                    routeId = routeId.slice(0, -vehRefInitial.length);
+                }
+                
+                const vehRoute = allRoutes[props.feed + ':' + routeId];
+                const fuzzyHeadsign = routeId;
                 const headsign = veh.walttiRouteId
                     ? (vehRoute?.shortName ?? '???')
                     : veh.headsign;
@@ -335,7 +343,7 @@ export default function NysseMapNew(props: {
                                     setPopupBusLine(trip || null);
                                     
                                     if (!trip) {
-                                        console.error(`fuzzy trip search failed for ${headsign}`);
+                                        console.error(`fuzzy trip search failed for ${fuzzyHeadsign}`);
                                         return;
                                     }
                                     
@@ -378,7 +386,7 @@ export default function NysseMapNew(props: {
                                 }
                                 
                                 if (!trip) {
-                                    console.error(`fuzzy trip search failed for ${headsign}`);
+                                    console.error(`fuzzy trip search failed for ${fuzzyHeadsign}`);
                                     return;
                                 }
                                 

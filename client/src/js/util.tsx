@@ -66,6 +66,10 @@ export async function findRouteDetails(routeHeadsign: string, direction: number,
     
     console.log(routeHeadsign, direction, dateRef, timeRef, feed);
     
+    if (timeRef.includes(':')) {
+        timeRef = timeRef.split(':').join('');
+    }
+    
     const x = await fetch(`/api/getRouteDetails/${encodeURIComponent(feed)}`, {
         method: 'post',
         headers: { 'Content-Type': 'application/json' },

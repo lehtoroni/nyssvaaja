@@ -7,7 +7,7 @@
     "start": "parcel build src/index.html && node server/index.js",
     "build": "parcel build src/index.html",
     "devserver": "node server/index.js",
-    "dev": "parcel src/index.html --no-hmr",
+    "dev": "concurrently \"parcel src/index.html --no-hmr\" \"copy-and-watch --watch ../server/src/common/**/* ./src/common/\"",
     "licensereport:front": "license-report --output=json --fields=name --fields=licenseType --fields=link --fields=installedVersion --fields=author > src/assets/licenses_frontend.json",
     "licensereport:server": "license-report --output=json --fields=name --fields=licenseType --fields=link --fields=installedVersion --fields=author --package=./server/package.json > src/assets/licenses_server.json",
     "licensereport": "npm run licensereport:front && npm run licensereport:server"
@@ -67,6 +67,8 @@
     "@types/leaflet-rotatedmarker": "^0.2.5",
     "@types/react": "18.2.48",
     "@types/react-dom": "18.2.18",
+    "concurrently": "^10.0.3",
+    "copy-and-watch": "^0.1.8",
     "license-report": "^6.8.0",
     "parcel": "^2.16.0",
     "process": "^0.11.10",

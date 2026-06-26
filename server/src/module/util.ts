@@ -19,13 +19,19 @@ export function gtfsEntityToGeneral(entity: GtfsRealtimeBindings.transit_realtim
         vehicleRef: entity?.vehicle?.vehicle?.id ?? '',
         tripDate: dateToDashed(entity?.vehicle?.trip?.startDate ?? ''),
         tripTime: entity?.vehicle?.trip?.startTime ?? '0',
-        walttiRouteId?: entity?.vehicle?.trip?.routeId ?? undefined,
-        licensePlate?: entity?.vehicle?.vehicle?.licensePlate ?? undefined
+        walttiRouteId: entity?.vehicle?.trip?.routeId ?? undefined,
+        licensePlate: entity?.vehicle?.vehicle?.licensePlate ?? undefined,
+        
+        occupancy: entity?.vehicle?.occupancyPercentage ?? -1,
+        
+        // @ts-ignore
+        raw: JSON.parse(JSON.stringify(entity)),
+        timestamp: Date.now()
     };
 }
 
 export function dateToDashed(rawDate: string) {
-    return rawDate.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3');+
+    return rawDate.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3');
 }
 
 export function dashedToUndashedDate(rawDate: string) {
