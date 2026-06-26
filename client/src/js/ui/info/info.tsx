@@ -129,10 +129,17 @@ export default function AppInfo(props: { feed: string, setFeed: (toFeed: string)
             <div className='col-12 col-lg-6 col-xl-5'>
                 
                 <div className='nyssvaaja-info-header'>
-                    <h1 className='text-center'>🚍️</h1>
+                    <div className='text-center'>
+                        <img src={new URL('../../../assets/icon.png', import.meta.url).href}
+                            style={{
+                                width: '100%',
+                                maxWidth: '96px'
+                            }}
+                            />
+                    </div>
                     <h3 className='text-center'>Nyssvääjä</h3>
                     <p className='text-center'>
-                        Nyssvääjä on bussi&shy;pysäkki&shy;monitori Tamperelaisille (...ja nyt myös muille). Valitse pysäkit ja lisää kotinäytölle!
+                        Nyssvääjä on bussi&shy;pysäkki&shy;monitori kiireisille ihmisille.<br/>Valitse pysäkit ja lisää sivu kotinäytölle!
                     </p>
                 </div>
                 
