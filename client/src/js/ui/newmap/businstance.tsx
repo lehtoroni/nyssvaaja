@@ -1,6 +1,6 @@
 import { h } from 'preact'
 import { Fragment, useState } from 'react';
-import { getDueMinutes, RemixIcon } from '../../util';
+import { calculateTripLengthKm, getDueMinutes, RemixIcon } from '../../util';
 
 
 export function BusInstanceMonitor(props: {
@@ -16,6 +16,25 @@ export function BusInstanceMonitor(props: {
     const [isOpen, setOpen] = useState<boolean>(false);
     
     console.log(props.trip);
+    
+    const getStopTime = (st: any) => new Date(st.serviceDay*1000 + st.realtimeDeparture*1000).getTime();
+    const lastStops = props.trip.stoptimesForDate
+        .filter((st: any) => getStopTime(st) <= Date.now())
+        .toSorted((stA: any, stB: any) => {
+            return getStopTime(stB) - getStopTime(stA);
+        });
+    const lastStop = lastStops[0];
+    let vehDelay: number = 0;
+    let vehDeparted = false;
+    if (lastStop) {
+        vehDelay = lastStop.realtimeDeparture*1000 - lastStop.scheduledDeparture*1000;
+        vehDeparted = true;
+    } else {
+        vehDelay = 0;
+        vehDeparted = false;
+    }
+    
+    const vehDelaySeconds = Math.round(Math.abs(vehDelay)/1000);
     
     return <aside className='x-floating-details' data-open={`${isOpen}`}>
         <div className='p-3 py-2'>
@@ -41,9 +60,22 @@ export function BusInstanceMonitor(props: {
             </div>
             
             
-            <p>
+            <p className='mb-1'>
+                <RemixIcon icon='ri-calendar-schedule-line'/> {' '}
                 Lähtö {' '}
                 {new Date(props.trip.stoptimesForDate[0].serviceDay*1000 + props.trip.stoptimesForDate[0].scheduledDeparture*1000).toLocaleString('fi')}.
+            </p>
+            
+            <p className='mb-1'>
+                <RemixIcon icon='ri-map-pin-time-line'/> {' '}
+                {vehDeparted && <Fragment>
+                    <b className={vehDelay > 0 ? 'text-danger' : 'text-success'}>{Math.floor(vehDelaySeconds/60)} min {vehDelaySeconds % 60} s {vehDelay < 0 ? 'edellä' : 'myöhässä'}</b>
+                </Fragment>} 
+            </p>
+            
+            <p className='mb-2'>
+                <RemixIcon icon='ri-route-line'/> {' '}
+                {calculateTripLengthKm(props.trip.geometry).toFixed(1)} km 
             </p>
             
             <div className='x-trip-stops'>

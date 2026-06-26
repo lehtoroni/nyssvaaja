@@ -328,13 +328,13 @@ export default function NysseMapNew(props: {
                             .setLatLng(veh.location)
                             .setContent(`
                                 <b><span class="headsign">${encodeHTML(headsign)}</span> ${encodeHTML(veh.destination)}</b> <br/>
-                                <span class="${`time ${Math.abs(veh.delay) < 0.5 ? '' : (veh.delay < 0 ? 'early' : 'delayed')}`}"><i>Laskee...</i></span>
+                                <span class="${`time ${Math.abs(veh.delay) < 0.5 ? '' : (veh.delay < 0 ? 'early' : 'delayed')}`}"><i>Hakee...</i></span>
                             `);
                         
                         let shownPath: Polyline | null = null;
                         let tripUpdateTimeout: any = null;
                         
-                        const updateRouteInfo = () => {
+                        const updateRouteInfo = (isInitial: boolean) => {
                             findRouteDetails(fuzzyHeadsign, parseInt(veh.direction), veh.tripDate, veh.tripTime, props.feed)
                                 .then(trip => {
                                     
@@ -348,7 +348,6 @@ export default function NysseMapNew(props: {
                                                 return getStopTime(stB) - getStopTime(stA);
                                             });
                                         const lastStop = lastStops[0];
-                                        console.log('last stop: ', lastStop);
                                         if (lastStop) {
                                             veh.delay = lastStop.realtimeDeparture*1000 - lastStop.scheduledDeparture*1000;
                                             popupBus.setContent(`
@@ -366,25 +365,68 @@ export default function NysseMapNew(props: {
                                     
                                     setPopupBusLine(trip || null);
                                     
-                                    if (!trip) {
-                                        console.error(`fuzzy trip search failed for ${fuzzyHeadsign}`);
-                                        return;
+                                    // when first update:
+                                    // - add path polyline
+                                    // - dim other markers
+                                    if (isInitial) {
+                                        
+                                        if (shownPath) {
+                                            shownPath?.remove();
+                                            shownPath = null;
+                                        }
+                                    
+                                        if (!trip) {
+                                            console.error(`fuzzy trip search failed for ${fuzzyHeadsign}`);
+                                            return;
+                                        }
+                                        
+                                        shownPath = L.polyline(trip.geometry.map(([lo, la]: [number, number]) => [la, lo]), {
+                                            color: typeColors[vehRoute.mode] || '#20264d', //TRAM_HEADSIGNS.includes(headsign) ? ,
+                                            weight: 10
+                                        });
+                                        shownPath.addTo(map);
+                                        
+                                        for (const m of stopMarkers.values()) {
+                                            m.setOpacity(0.2);
+                                        }
+                                        
                                     }
                                     
                                     for (const stopTime of trip.stoptimesForDate) {
                                         
                                         const stopMarker = stopMarkers.get(stopTime.stop.gtfsId);
-                                        if (!stopMarker) continue;
+                                        if (!stopMarker) {
+                                            continue;
+                                        }
                                         
-                                        if ((((stopTime.serviceDay*1000 + stopTime.realtimeDeparture*1000) - Date.now())/1000/60) > 0) {
-                                            stopMarker.getTooltip()?.setContent(`<div class='x-map-stop-tooltip'>
-                                                <b>${stopTime.stop.name}</b> <br/>
-                                                ${(((stopTime.serviceDay*1000 + stopTime.realtimeDeparture*1000) - Date.now())/1000/60).toFixed(0)} min
-                                            </div>`);
+                                        const timeStopDeparture = (stopTime.serviceDay*1000 + stopTime.realtimeDeparture*1000);
+                                        const isPassed = ((timeStopDeparture - Date.now())/1000/60) > 0;
+                                        
+                                        const tooltipContent = `<div class='x-map-stop-tooltip'>
+                                            <b>${stopTime.stop.name}</b> <br/>
+                                            ${((timeStopDeparture - Date.now())/1000/60).toFixed(0)} min
+                                        </div>`;
+                                        
+                                        if (isInitial) {
+                                            // initial update: create and bind tooltip
+                                            stopMarker.setOpacity(1);
+                                            if (isPassed) {
+                                                stopMarker.bindTooltip(L.tooltip({
+                                                    className: '',
+                                                    permanent: true,
+                                                    direction: 'center',
+                                                    content: tooltipContent
+                                                }));
+                                            }
                                         } else {
-                                            if (stopMarker.getTooltip()) {
-                                                stopMarker.unbindTooltip();
-                                                stopMarker.getTooltip()?.remove();
+                                            // non-initial update: update tooltip content
+                                            if (isPassed) {
+                                                stopMarker.getTooltip()?.setContent(tooltipContent);
+                                            } else {
+                                                if (stopMarker.getTooltip()) {
+                                                    stopMarker.unbindTooltip();
+                                                    stopMarker.getTooltip()?.remove();
+                                                }
                                             }
                                         }
                                         
@@ -395,96 +437,21 @@ export default function NysseMapNew(props: {
                                     console.error(err);
                                 })
                                 .finally(() => {
-                                    tripUpdateTimeout = setTimeout(() => updateRouteInfo(), 1000*10);
+                                    tripUpdateTimeout = setTimeout(() => updateRouteInfo(false), 1000*8);
                                 })
                         }
                         
-                        findRouteDetails(fuzzyHeadsign, parseInt(veh.direction), veh.tripDate, veh.tripTime, props.feed)
-                            .then(trip => {
-                
-                                // stupid hack for delay calculation
-                                // (Tampere had delay precalculated but Digitransit MQTT doesn't :c )
-                                if (veh.delay == 0 && vehRoute) {
-                                    const getStopTime = (st: any) => new Date(st.serviceDay*1000 + st.realtimeDeparture*1000).getTime();
-                                    const lastStops = trip.stoptimesForDate
-                                        .filter((st: any) => getStopTime(st) <= Date.now())
-                                        .toSorted((stA: any, stB: any) => {
-                                            return getStopTime(stB) - getStopTime(stA);
-                                        });
-                                    const lastStop = lastStops[0];
-                                    console.log('last stop: ', lastStop);
-                                    if (lastStop) {
-                                        veh.delay = lastStop.realtimeDeparture*1000 - lastStop.scheduledDeparture*1000;
-                                        popupBus.setContent(`
-                                            <b><span class="headsign">${encodeHTML(headsign)}</span> ${encodeHTML(veh.destination)}</b> <br/>
-                                            <span class="${`time ${Math.abs(veh.delay) < 0.5 ? '' : (veh.delay < 0 ? 'early' : 'delayed')}`}">${(Math.abs(veh.delay)/1000/60).toFixed(1)} min ${veh.delay < 0 ? 'etuajassa' : 'myöhässä'}</span>
-                                        `);
-                                    } else {
-                                        veh.delay = 0;
-                                        popupBus.setContent(`
-                                            <b><span class="headsign">${encodeHTML(headsign)}</span> ${encodeHTML(veh.destination)}</b> <br/>
-                                            <span class="time early"><i>Aikataulussa</i></span>
-                                        `);
-                                    }
-                                }
-                                    
-                                setPopupBusLine(trip || null);
-                                
-                                if (shownPath) {
-                                    shownPath?.remove();
-                                    shownPath = null;
-                                }
-                                
-                                if (!trip) {
-                                    console.error(`fuzzy trip search failed for ${fuzzyHeadsign}`);
-                                    return;
-                                }
-                                
-                                shownPath = L.polyline(trip.geometry.map(([lo, la]: [number, number]) => [la, lo]), {
-                                    color: typeColors[vehRoute.mode] || '#20264d', //TRAM_HEADSIGNS.includes(headsign) ? ,
-                                    weight: 10
-                                });
-                                shownPath.addTo(map);
-                                
-                                for (const m of stopMarkers.values()) {
-                                    m.setOpacity(0.2);
-                                }
-                                for (const stopTime of trip.stoptimesForDate) {
-                                    
-                                    const stopMarker = stopMarkers.get(stopTime.stop.gtfsId);
-                                    if (!stopMarker) continue;
-                                    
-                                    stopMarker.setOpacity(1);
-                                    
-                                    if ((((stopTime.serviceDay*1000 + stopTime.realtimeDeparture*1000) - Date.now())/1000/60) > 0) {
-                                        stopMarker.bindTooltip(L.tooltip({
-                                            className: '',
-                                            permanent: true,
-                                            direction: 'center',
-                                            content: `<div class='x-map-stop-tooltip'>
-                                                <b>${stopTime.stop.name}</b> <br/>
-                                                ${(((stopTime.serviceDay*1000 + stopTime.realtimeDeparture*1000) - Date.now())/1000/60).toFixed(0)} min
-                                            </div>`
-                                        }));
-                                    }
-                                    
-                                    
-                                }
-                                
-                            })
-                            .catch(err => {
-                                console.error(err);
-                            })
-                            .finally(() => {
-                                tripUpdateTimeout = setTimeout(() => updateRouteInfo(), 1000*10);
-                            })
+                        // initial route info fetch
+                        updateRouteInfo(true);
                         
                         m.bindPopup(popupBus).openPopup();
                         
                         let isRemoved = false;
                         m.addEventListener('popupclose', () => {
                             
-                            if (isRemoved) return;
+                            if (isRemoved) {
+                                return;
+                            }
                             isRemoved = true;
                                     
                             setPopupBusLine(null);
@@ -502,6 +469,7 @@ export default function NysseMapNew(props: {
                             
                             if (tripUpdateTimeout !== null) {
                                 clearTimeout(tripUpdateTimeout);
+                                tripUpdateTimeout = null;
                             }
                             
                             console.log('remove popup');
@@ -523,16 +491,6 @@ export default function NysseMapNew(props: {
                 if (markerText && markerText instanceof HTMLElement) {
                     markerText.style.transform = `rotate(-${veh.bearing}deg)`;
                     markerText.textContent = `${headsign}`;
-                }
-                
-                const popupBus = m?.getPopup();
-                if (popupBus) {
-                    /*
-                    popupBus.setContent(`
-                        <b><span class="headsign">${encodeHTML(headsign)}</span> ${encodeHTML(veh.destination)}</b> <br/>
-                        <span class="${`time ${Math.abs(veh.delay) < 0.5 ? '' : (veh.delay < 0 ? 'early' : 'delayed')}`}"><i>Laskee...</i></span>
-                    `);
-                    */
                 }
                 
             }

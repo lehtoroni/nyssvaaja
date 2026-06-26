@@ -64,7 +64,7 @@ export async function findRouteDetails(routeHeadsign: string, direction: number,
         routeHeadsign = `${feed}:${routeHeadsign}`;
     }
     
-    console.log(routeHeadsign, direction, dateRef, timeRef, feed);
+    //console.log(routeHeadsign, direction, dateRef, timeRef, feed);
     
     if (timeRef.includes(':')) {
         timeRef = timeRef.split(':').join('');
@@ -257,4 +257,38 @@ export function RemixIcon(props: { icon: string }) {
 
 export function capitalizeFirst(s: string) {
     return s.slice(0, 1).toUpperCase() + s.slice(1);
+}
+
+export function calculateTripLengthKm(coordinates: [number, number][]) {
+    
+    if (!coordinates || coordinates.length < 2) return 0;
+
+    const EARTH_RADIUS_KM = 6371;
+    let totalDistance = 0;
+
+    const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+
+    for (let i = 0; i < coordinates.length - 1; i++) {
+        
+        const [lon1, lat1] = coordinates[i];
+        const [lon2, lat2] = coordinates[i + 1];
+
+        const dLat = toRadians(lat2 - lat1);
+        const dLon = toRadians(lon2 - lon1);
+
+        const rLat1 = toRadians(lat1);
+        const rLat2 = toRadians(lat2);
+
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(rLat1) * Math.cos(rLat2);
+        
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const segmentDistance = EARTH_RADIUS_KM * c;
+
+        totalDistance += segmentDistance;
+        
+    }
+
+    return totalDistance;
+    
 }
