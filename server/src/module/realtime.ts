@@ -13,6 +13,8 @@ export function initRealtime(props: {
     
     const { VERSION, apiKey, walttiKey } = props;
     
+    const clientIdRandom = `${crypto.randomUUID().split('-')[0]}_${Date.now().toString(36)}`;
+    
     const realtimeData = new Map<string, Map<string, IRealtimeVehicle>>();
     const lastRealtimeAsked = new Map<string, number>();
     const activeRealtimeFeeds: string[] = [];
@@ -33,7 +35,7 @@ export function initRealtime(props: {
         mqttClient = await mqtt.connectAsync(`mqtts://mqtt.digitransit.fi/gtfsrt/vp/#?digitransit-subscription-key=${encodeURIComponent(apiKey)}`, {
             keepalive: 30,
             reconnectPeriod: 15,
-            clientId: `nyssvaaja_v${VERSION}`
+            clientId: `nyssvaaja_v${VERSION}_${clientIdRandom}`
         });
         
         mqttClient.on('message', (topic, message) => {
@@ -63,7 +65,7 @@ export function initRealtime(props: {
             console.error(`MQTT error: ${err}`);
             console.error(err);
         });
-        mqttClient.on('connect', () => {
+        mqttClient.on('connect', err => {
             console.log(`MQTT client has connected.`);
         })
         mqttClient.on('disconnect', () => {
