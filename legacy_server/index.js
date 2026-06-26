@@ -11,20 +11,45 @@ import bodyParser from 'body-parser';
 import rateLimit from 'express-rate-limit';
 import NodeCache from 'node-cache';
 
+import GtfsRealtimeBindings from 'gtfs-realtime-bindings';
+
 const __dirname = path.dirname(URL.fileURLToPath(import.meta.url));
 const args = argsParser(process.argv);
 
 const apiKeyFile = path.join(__dirname, '..', 'apikey.txt');
+const walttiKeyFile = path.join(__dirname, '..', 'waltti.txt');
 
 const port = args.port ?? 9999;
 const apiKey = args.apiKey ?? (fs.existsSync(apiKeyFile) ? fs.readFileSync(apiKeyFile, 'utf8').trim() : null);
+const walttiKeyRaw = args.walttiKey ?? (fs.existsSync(walttiKeyFile) ? fs.readFileSync(walttiKeyFile, 'utf8').trim() : null);
+const walttiKey = Buffer.from(walttiKeyRaw, 'utf8').toString('base64');
+
+const walttiCity = [
+    'lahti',
+    'joensuu',
+    'jyvaskyla',
+    'oulu'
+];
+
 //const baseUrl = `https://api.digitransit.fi/routing/v1/routers/waltti/index/graphql`;
+
+const endpoints = new Map(Object.entries({
+    'HSL': `https://api.digitransit.fi/routing/v2/hsl/gtfs/v1`,
+    'waltti': `https://api.digitransit.fi/routing/v2/waltti/gtfs/v1`,
+    'finland': `https://api.digitransit.fi/routing/v2/finland/gtfs/v1`,
+    'varely': `https://api.digitransit.fi/routing/v2/varely/gtfs/v1`
+}));
+
 const baseUrl = `https://api.digitransit.fi/routing/v2/waltti/gtfs/v1`;
-const FEED_ID = `tampere`;
 
 const realtimeDelay = (args.realtimeDelay ?? 3) * 2000;
+const realtimeMulti = new Map();
+
 let cachedRealtimeData = {};
 updateRealtime();
+
+let feedsAndAgencies = new Map();
+updateDaily().catch(err => console.error(err));
 
 const queryCache = new NodeCache({
     stdTTL: 60,
@@ -62,7 +87,152 @@ function convertDurationToMilliseconds(durationString) {
     
 }
 
+async function updateDaily() {
+    
+    try {
+        
+        console.log(`Fetching endpoints and their feeds...`);
+        const timeStart = Date.now();
+        
+        feedsAndAgencies.clear();
+        
+        for (const [key, endpointUrl] of Object.entries(Object.fromEntries(endpoints.entries()))) {
+            
+            console.log(`${key}: ${endpointUrl}`);
+            const omap = new Map();
+            
+            const feedsData = await nysseQuery(`{
+                feeds {
+                    feedId,
+                    agencies {
+                        name,
+                        gtfsId,
+                        url
+                    }
+                }
+            }`, endpointUrl);
+            
+            for (const fd of (feedsData?.data?.feeds ?? [])) {
+                if (omap.has(fd.feedId)) {
+                    omap.set(`${key}§${fd.feedId}`);
+                    console.log(`Duplicate feed: ${fd.feedId}`);
+                } else {
+                    omap.set(fd.feedId, fd);
+                }
+            }
+            
+            feedsAndAgencies.set(key, omap);
+            
+        }
+        console.log(`Loaded, took ${Date.now() - timeStart} ms`);
+        
+    } catch (err) {
+        console.error(`Error while fetching hourly data: ${err}`);
+        console.error(err);
+    }
+    
+    setTimeout(() => {
+        updateDaily().catch(err => console.error(err));
+    }, 1000*60*60);
+    
+}
+
+function isValidFeed(feedId) {
+    const feedEndpoint = getFeeds(feedId)[feedId];
+    return feedEndpoint && endpoints.get(feedEndpoint);
+}
+
+function getFeeds() {
+    const feedsOut = {};
+    feedsAndAgencies.forEach((feeds, key) => {
+        feeds.forEach((feedData, feedId) => {
+            feedsOut[feedId] = key;
+        })
+    })
+    return Object.fromEntries(
+        Object.entries(feedsOut).toSorted(([a], [b]) => a.localeCompare(b))
+    );
+}
+
 async function updateRealtime() {
+    
+    
+    try {
+        
+        const cityOut = [];
+        
+        const x = await fetch(`https://realtime.hsl.fi/realtime/vehicle-positions/v2/hsl`, {
+            headers: { 'User-Agent': `Nyssvaaja` }
+        });
+        const raw = await x.arrayBuffer();
+        const feed = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(new Uint8Array(raw));
+        
+        feed.entity.forEach(entity => {
+            cityOut.push({
+                headsign: entity.vehicle.trip.routeId,
+                direction: entity.vehicle.trip.directionId,
+                origin: '',
+                destination: entity.vehicle.vehicle.label,
+                location: [
+                    entity.vehicle.position.latitude,
+                    entity.vehicle.position.longitude
+                ],
+                bearing: entity.vehicle.position.bearing,
+                delay: 0,
+                vehicleRef: entity.vehicle.vehicle.id,
+                tripDate: `${entity.vehicle.trip.startDate}`.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3'),
+                tripTime: `${parseInt(`${entity.vehicle.trip.startTime}`.replace(/:/gmi, ''))}`,
+                
+                walttiRouteId: entity.vehicle.trip.routeId,
+                licensePlate: entity.vehicle.vehicle.licensePlate,
+                //raw: JSON.parse(JSON.stringify(entity))
+            });
+        });
+        
+        realtimeMulti.set('helsinki', cityOut);
+        
+    } catch (err) {
+        console.error(err);
+    }
+    
+    try {
+        
+        for (const city of walttiCity) {
+            
+            const cityOut = [];
+            
+            const raw = await walttiQuery(`https://data.waltti.fi/${encodeURIComponent(city)}/api/gtfsrealtime/v1.0/feed/vehicleposition`);
+            const feed = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(new Uint8Array(raw));
+            
+            feed.entity.forEach(entity => {
+                cityOut.push({
+                    headsign: entity.vehicle.trip.routeId,
+                    direction: entity.vehicle.trip.directionId,
+                    origin: '',
+                    destination: entity.vehicle.vehicle.label,
+                    location: [
+                        entity.vehicle.position.latitude,
+                        entity.vehicle.position.longitude
+                    ],
+                    bearing: entity.vehicle.position.bearing,
+                    delay: 0,
+                    vehicleRef: entity.vehicle.vehicle.id,
+                    tripDate: `${entity.vehicle.trip.startDate}`.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3'),
+                    tripTime: `${parseInt(`${entity.vehicle.trip.startTime}`.replace(/:/gmi, ''))}`,
+                    
+                    walttiRouteId: entity.vehicle.trip.routeId,
+                    licensePlate: entity.vehicle.vehicle.licensePlate,
+                    //raw: JSON.parse(JSON.stringify(entity))
+                });
+            });
+            
+            realtimeMulti.set(city, cityOut);
+            
+        }
+        
+    } catch (err) {
+        console.error(err);
+    }
     
     try {
         
@@ -103,7 +273,11 @@ if (!apiKey || apiKey == '') {
     throw new Error(`Please provide an API key using --apiKey=... or using apikey.txt in the root folder`);
 }
 
-console.log(`Nyssvääjä² (c) 2023`);
+if (!walttiKeyRaw || walttiKeyRaw == '') {
+    throw new Error(`Please provide a Waltti id:secret pair using --walttiKey=clientid:secret or using waltti.txt in the root folder`);
+}
+
+console.log(`Nyssvääjä² (c) 2026`);
 
 const app = express();
 
@@ -119,34 +293,24 @@ app.use(rateLimit({
     legacyHeaders: false
 }));
 
-/*
-app.post('/api/digitransit', asyncHandler(async (req, res) => {
-    
-    const x = await fetch(baseUrl, {
+async function walttiQuery(url) {
+    const x = await fetch(url, {
         headers: {
-            'Content-Type': 'application/json',
-            'Digitransit-Subscription-Key': `${apiKey}`
-        },
-        method: 'POST',
-        body: req.body
+            'Authorization': `Basic ${walttiKey}`,
+            'User-Agent': `Nyssvaaja`
+        }
     });
+    const raw = await x.arrayBuffer();
+    return raw;
+}
+
+async function nysseQuery(query, endpointUrl) {
     
-    if (!x.ok) {
-        res.json({
-            error: `${x.status} ${x.statusText} ${await x.text()}`
-        });
-        return;
+    if (!endpointUrl) {
+        endpointUrl = baseUrl;
     }
     
-    const respRaw = await x.json();
-    res.json(respRaw);
-    
-}));
-*/
-
-async function nysseQuery(query) {
-    
-    const x = await fetch(baseUrl, {
+    const x = await fetch(endpointUrl, {
         headers: {
             'Content-Type': 'application/graphql',
             'Digitransit-Subscription-Key': `${apiKey}`
@@ -164,10 +328,24 @@ async function nysseQuery(query) {
     
 }
 
-app.get('/api/getCanceledTrips', asyncHandler(async (req, res) => {
+app.get('/api/getFeeds', asyncHandler(async (req, res) => {
+    res.json({
+        feeds: getFeeds(),
+        realtime: [...realtimeMulti.keys(), 'tampere', 'hsl', 'linkki']
+    });
+}));
+
+app.get('/api/getCanceledTrips/:feed', asyncHandler(async (req, res) => {
     
-    if (queryCache.has(req.params)) {
+    if (queryCache.has(req.path)) {
         return res.json(queryCache.get(req.path));
+    }
+    
+    const feed = req.params.feed || 'tampere';
+    const feedEndpoint = endpoints.get(getFeeds()[feed]);
+    if (!isValidFeed(feed) || !feedEndpoint) {
+        res.status(400).json({ error: `Illegal feed '${feed}'` });
+        return;
     }
     
     const data = await nysseQuery(`{
@@ -202,7 +380,7 @@ app.get('/api/getCanceledTrips', asyncHandler(async (req, res) => {
       }
     }
   }
-}`);
+}`, feedEndpoint);
     
     queryCache.set(req.path, data, 15);
     
@@ -210,20 +388,27 @@ app.get('/api/getCanceledTrips', asyncHandler(async (req, res) => {
     
 }));
 
-app.get('/api/getAllRoutes', asyncHandler(async (req, res) => {
+app.get('/api/getAllRoutes/:feed', asyncHandler(async (req, res) => {
     
     if (queryCache.has(req.path)) {
         return res.json(queryCache.get(req.path));
     }
     
+    const feed = req.params.feed || 'tampere';
+    const feedEndpoint = endpoints.get(getFeeds()[feed]);
+    if (!isValidFeed(feed) || !feedEndpoint) {
+        res.status(400).json({ error: `Illegal feed '${feed}'` });
+        return;
+    }
+    
     const data = await nysseQuery(`{
-        routes(feeds: ["tampere"]) {
+        routes(feeds: [${JSON.stringify(feed)}]) {
             gtfsId,
             shortName,
             mode,
             longName
         }
-    }`);
+    }`, feedEndpoint);
     
     queryCache.set(req.path, data, 60*60);
     
@@ -231,7 +416,7 @@ app.get('/api/getAllRoutes', asyncHandler(async (req, res) => {
     
 }));
 
-app.post('/api/getStopsData', (req, res) => {
+app.post('/api/getStopsData/:feed', (req, res) => {
     
     if (!req.body
         || !(typeof req.body == 'object')
@@ -240,6 +425,13 @@ app.post('/api/getStopsData', (req, res) => {
         res.json({
             error: `invalid body`
         }).status(400);
+        return;
+    }
+    
+    const feed = req.params.feed || 'tampere';
+    const feedEndpoint = endpoints.get(getFeeds()[feed]);
+    if (!isValidFeed(feed) || !feedEndpoint) {
+        res.status(400).json({ error: `Illegal feed '${feed}'` });
         return;
     }
     
@@ -305,7 +497,7 @@ app.post('/api/getStopsData', (req, res) => {
         alertDescriptionText,
         alertHeaderText,
         alertSeverityLevel
-    }`)
+    }`, feedEndpoint)
         .then(stopsData => {
             res.json(stopsData);
         })
@@ -315,13 +507,20 @@ app.post('/api/getStopsData', (req, res) => {
         })
 })
 
-app.post('/api/getRouteDetails', (req, res) => {
+app.post('/api/getRouteDetails/:feed', (req, res) => {
     
     if (!req.body
         || !(typeof req.body == 'object')) {
         res.json({
             error: `invalid body`
         }).status(400);
+        return;
+    }
+    
+    const feed = req.params.feed || 'tampere';
+    const feedEndpoint = endpoints.get(getFeeds()[feed]);
+    if (!isValidFeed(feed) || !feedEndpoint) {
+        res.status(400).json({ error: `Illegal feed '${feed}'` });
         return;
     }
     
@@ -366,7 +565,7 @@ app.post('/api/getRouteDetails', (req, res) => {
               pickupType
             }
         }
-    }`)
+    }`, feedEndpoint)
         .then(rawData => {
             const tripData = rawData.data?.fuzzyTrip ?? null;
             res.json(tripData);
@@ -381,9 +580,14 @@ app.post('/api/getRouteDetails', (req, res) => {
 let cachedAllStops = null;
 let timeCachedAllStops = 0;
 
-app.get('/api/getAllStops', asyncHandler(async (req, res) => {
+app.get('/api/getAllStops/:feed', asyncHandler(async (req, res) => {
     
-    const feed = req.query.feed || 'tampere:';
+    const feed = req.params.feed || 'tampere';
+    const feedEndpoint = endpoints.get(getFeeds()[feed]);
+    if (!isValidFeed(feed) || !feedEndpoint) {
+        res.status(400).json({ error: `Illegal feed '${feed}'` });
+        return;
+    }
     
     const rawData = queryCache.has(req.path)
         ? queryCache.get(req.path)
@@ -398,22 +602,27 @@ app.get('/api/getAllStops', asyncHandler(async (req, res) => {
                     lat,
                     lon
                 }
-            }`);
+            }`, feedEndpoint);
             queryCache.set(req.path, x, 60*15);
             return x;
         })();
     
     if (rawData && rawData.data && rawData.data.stops) {
-        rawData.data.stops = rawData.data.stops.filter(stop => (stop.gtfsId ?? '').startsWith(feed))
+        rawData.data.stops = rawData.data.stops.filter(stop => (stop.gtfsId ?? '').startsWith(feed + ':'))
     }
     
     return res.json(rawData);
     
 }));
 
-app.get('/api/getAlerts', asyncHandler(async (req, res) => {
+app.get('/api/getAlerts/:feed', asyncHandler(async (req, res) => {
     
-    const feed = req.query.feed || 'tampere';
+    const feed = req.params.feed || 'tampere';
+    const feedEndpoint = endpoints.get(getFeeds()[feed]);
+    if (!isValidFeed(feed) || !feedEndpoint) {
+        res.status(400).json({ error: `Illegal feed '${feed}'` });
+        return;
+    }
     
     const rawData = queryCache.has(req.path)
         ? queryCache.get(req.path)
@@ -462,7 +671,7 @@ app.get('/api/getAlerts', asyncHandler(async (req, res) => {
                         }
                     }
                 }
-            }`);
+            }`, feedEndpoint);
             queryCache.set(req.path, x, 60);
             return x;
         })();
@@ -475,8 +684,28 @@ app.get('/api/getAlerts', asyncHandler(async (req, res) => {
     
 }));
 
-app.get('/api/realtime', asyncHandler(async (req, res) => {
-    res.json(cachedRealtimeData);
+app.get('/api/realtime/:feed', asyncHandler(async (req, res) => {
+    
+    let feed = req.params.feed || 'tampere';
+    if (feed == 'FOLI') feed = 'turku';
+    if (feed == 'LINKKI') feed = 'jyvaskyla';
+    if (feed == 'HSL') feed = 'helsinki';
+    
+    const feedEndpoint = endpoints.get(getFeeds()[feed]);
+    if ((!isValidFeed(feed) || !feedEndpoint) && !(walttiCity.includes(feed.toLowerCase())) && !(realtimeMulti.has(feed.toLowerCase()))) {
+        res.status(400).json({ error: `Illegal feed '${feed}'` });
+        return;
+    }
+    
+    if (feed == 'tampere') {
+        res.json(cachedRealtimeData);
+    } else if (realtimeMulti.has(feed.toLowerCase())) {
+        res.json(realtimeMulti.get(feed.toLowerCase()));
+    } else {
+        res.json([]);
+    }
+    
+    
 }));
 
 // serve built frontend

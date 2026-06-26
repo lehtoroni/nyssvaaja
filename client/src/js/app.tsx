@@ -111,6 +111,7 @@ export default function App(props: {}) {
     
     const [filteredLines, setFilteredLines] = useState<string[] | null>(initialSettings.mapLines || null);
     const [monitorStops, setMonitorStops] = useState<string[]>(initialSettings.stops || []);
+    const [feedId, setFeedId] = useState<string>(initialSettings.feed || 'tampere');
     
     useEffect(() => {
         
@@ -121,11 +122,12 @@ export default function App(props: {}) {
         */
         
         window.location.hash = `#${encodeURIComponent(JSON.stringify({
+            feed: feedId == 'tampere' ? undefined : feedId,
             stops: monitorStops,
             mapLines: filteredLines
         }))}`;
         
-    }, [monitorStops, filteredLines]);
+    }, [monitorStops, filteredLines, feedId]);
     
     return <Fragment>
         
@@ -133,6 +135,7 @@ export default function App(props: {}) {
             <div className='nyssvaaja-view'>
                 {appView == AppView.MONITORS && <Fragment>
                     <Monitor
+                        feed={feedId}
                         stops={monitorStops}
                         interval={10}
                         isEditing={isEditing}
@@ -193,11 +196,15 @@ export default function App(props: {}) {
                 </Fragment>}
                 {appView == AppView.MAP &&
                     <NysseMapNew
+                        feed={feedId}
                         filteredLines={filteredLines}
                         setFilteredLines={setFilteredLines}
                         />}
                 {appView == AppView.INFO &&
-                    <AppInfo/>}
+                    <AppInfo
+                        feed={feedId}
+                        setFeed={toFeed => setFeedId(toFeed)}
+                        />}
             </div>
             <div className='nyssvaaja-menu'>
                 <div className='menu-item'
@@ -226,6 +233,7 @@ export default function App(props: {}) {
         
         {isChoosing &&
             <StopChooser
+                feed={feedId}
                 onChoose={stops => {
                     setMonitorStops(stops);
                     setChoosing(false);

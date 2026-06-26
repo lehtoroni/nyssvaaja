@@ -58,13 +58,15 @@ export function plusOrMinus(n: number, precision: number = 1) {
  * @param timeRef - the service time, as "HHMM" (the weird format from SIRI)
  * @returns the fetched trip data
  */
-export async function findRouteDetails(routeHeadsign: string, direction: number, dateRef: string, timeRef: string) {
+export async function findRouteDetails(routeHeadsign: string, direction: number, dateRef: string, timeRef: string, feed: string) {
     
-    if (!routeHeadsign.startsWith(`${FEED_ID}:`)) {
-        routeHeadsign = `${FEED_ID}:${routeHeadsign}`;
+    if (!routeHeadsign.startsWith(`${feed}:`)) {
+        routeHeadsign = `${feed}:${routeHeadsign}`;
     }
     
-    const x = await fetch(`/api/getRouteDetails`, {
+    console.log(routeHeadsign, direction, dateRef, timeRef, feed);
+    
+    const x = await fetch(`/api/getRouteDetails/${encodeURIComponent(feed)}`, {
         method: 'post',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -88,10 +90,10 @@ export async function findRouteDetails(routeHeadsign: string, direction: number,
  * Fetch a list of all Nysse stops from the API
  * @returns a list of all stops
  */
-export async function getAllStops() {
+export async function getAllStops(feed: string) {
     
     if (window.localStorage) {
-        const cached = window.localStorage.getItem(KEY_ALL_STOPS);
+        const cached = window.localStorage.getItem(KEY_ALL_STOPS + '_' + feed);
         if (cached) {
             const cachedData = JSON.parse(cached);
             if (Date.now() - cachedData.timestamp <= 1000*60*60*24) {
@@ -100,7 +102,7 @@ export async function getAllStops() {
         };
     }
     
-    const x = await fetch(`/api/getAllStops`, {
+    const x = await fetch(`/api/getAllStops/${encodeURIComponent(feed)}`, {
         method: 'GET',
     });
     const data = await x.json();
@@ -111,7 +113,7 @@ export async function getAllStops() {
     }
     
     if (window.localStorage) {
-        window.localStorage.setItem(KEY_ALL_STOPS, JSON.stringify({
+        window.localStorage.setItem(KEY_ALL_STOPS + '_' + feed, JSON.stringify({
             timestamp: Date.now(),
             data
         }))
@@ -126,9 +128,9 @@ export async function getAllStops() {
  * @param stopIds the stop ids
  * @returns the data
  */
-export async function getStopsData(stopIds: string[]) {
+export async function getStopsData(stopIds: string[], feed: string) {
     
-    const x = await fetch(`/api/getStopsData`, {
+    const x = await fetch(`/api/getStopsData/${encodeURIComponent(feed)}`, {
         method: 'post',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stopIds })
@@ -146,9 +148,9 @@ export type IGenericRoute = {
     longName: string
 };
 
-export async function getAllRoutes(feed: string = 'tampere') {
+export async function getAllRoutes(feed: string) {
     
-    const x = await fetch('/api/getAllRoutes');
+    const x = await fetch(`/api/getAllRoutes/${encodeURIComponent(feed)}`);
     const routes: IGenericRoute[] = (await x.json())?.data.routes ?? [];
     
     return routes.toSorted((a, b) => 
@@ -163,8 +165,8 @@ export async function getAllRoutes(feed: string = 'tampere') {
  * @param stopId the stop id
  * @returns the data
  */
-export async function getStopData(stopId: string){
-    return Object.values((await getStopsData([ stopId ])).data)[0];
+export async function getStopData(stopId: string, feed: string){
+    return Object.values((await getStopsData([ stopId ], feed)).data)[0];
 }
 
 /**
@@ -222,4 +224,8 @@ export function encodeHTML(s: string) {
 
 export function RemixIcon(props: { icon: string }) {
     return <i class={`ri ${props.icon}`}></i>;
+}
+
+export function capitalizeFirst(s: string) {
+    return s.slice(0, 1).toUpperCase() + s.slice(1);
 }

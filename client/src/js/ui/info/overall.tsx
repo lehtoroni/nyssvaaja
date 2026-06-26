@@ -15,7 +15,7 @@ export default function NysseOverallSituation(props: { feed: string }) {
         
         async function upd() {
             
-            const x = await fetch(`/api/realtime?t=${Date.now()}`);
+            const x = await fetch(`/api/realtime/${encodeURIComponent(props.feed)}?t=${Date.now()}`);
             const vehiclesRaw: IRealtimeVehicle[] = (await x.json());
             
             

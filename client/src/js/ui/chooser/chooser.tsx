@@ -6,9 +6,11 @@ import StopSelectorMap from './stopsmap';
 
 export default function StopChooser(props: {
     onChoose: (stops: string[]) => any,
-    chosen: string[]
+    chosen: string[],
+    feed: string
 }) {
     
+    const [mapCenter, setMapCenter] = useState<[number, number]>([0, 0]);
     const [allStops, setAllStops] = useState<IStopData[]>([]);
     const allStopsById = useMemo<Record<string, IStopData>>(() => Object.fromEntries(
         allStops.map(st => [st.gtfsId, st])
@@ -20,12 +22,16 @@ export default function StopChooser(props: {
     const [isMapMode, setMapMode] = useState<boolean>(false);
     
     useEffect(() => {
-        getAllStops()
+        getAllStops(props.feed)
             .then(stopData => {
                 
                 const rawData: IStopData[] = [...stopData.data.stops].filter(sd => !!sd.vehicleMode);
                 rawData.sort((a, b) => (a.vehicleMode ?? '').toLowerCase().localeCompare((b.vehicleMode ?? '').toLowerCase()) || a.name.localeCompare(b.name));
                 
+                const latC = rawData.reduce((p, c) => p+c.lat, 0)/rawData.length;
+                const lonC = rawData.reduce((p, c) => p+c.lon, 0)/rawData.length;
+                
+                setMapCenter([latC, lonC]);
                 setAllStops(rawData);
                 
             })
@@ -129,6 +135,8 @@ export default function StopChooser(props: {
         </Fragment>}
         
         {isMapMode && <StopSelectorMap
+            feed={props.feed}
+            center={mapCenter}
             selected={selectedStops}
             onPick={stopId => {
                 setSelectedStops(old => old.includes(stopId)

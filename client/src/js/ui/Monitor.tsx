@@ -9,6 +9,7 @@ export const VEHICLE_ICON: Record<string, string> = {
 };
 
 export default function Monitor(props: {
+    feed: string,
     stops: string[],
     interval: number,
     isEditing: boolean,
@@ -21,7 +22,7 @@ export default function Monitor(props: {
     function refresh() {
         (async () => {
             
-            const stopsDataRaw = await getStopsData(props.stops);
+            const stopsDataRaw = await getStopsData(props.stops, props.feed);
             const stopsData = props.stops.map(stopId => [stopId, stopsDataRaw.data[stopId.replace(':', '_')]]);
             
             setStopData(Object.fromEntries(stopsData));
@@ -88,14 +89,14 @@ export default function Monitor(props: {
     </div>;
 }
 
-export function SingleNysseStop(props: { stopId: string }) {
+export function SingleNysseStop(props: { stopId: string, feed: string }) {
     
     const [stopData, setStopData] = useState<IStopRealtimeData[]>();
     
     function refresh() {
         (async () => {
             
-            const stopsDataRaw = await getStopsData([props.stopId]);
+            const stopsDataRaw = await getStopsData([props.stopId], props.feed);
             const stopsData = [props.stopId].map(stopId => stopsDataRaw.data[stopId.replace(':', '_')])
             
             setStopData(stopsData);

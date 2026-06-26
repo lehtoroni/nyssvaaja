@@ -7,7 +7,7 @@ import { signal } from '@preact/signals';
 import 'leaflet-rotatedmarker';
 import 'leaflet-doubletapdrag';
 import 'leaflet-doubletapdragzoom';
-import { encodeHTML, findRouteDetails, getAllStops, RemixIcon } from 'src/js/util';
+import { encodeHTML, findRouteDetails, getAllStops, IGenericRoute, RemixIcon } from 'src/js/util';
 import { IStopData } from 'src/js/app';
 import { NysseStop, SingleNysseStop } from '../Monitor';
 import { LinePicker } from './linepicker';
@@ -47,6 +47,20 @@ const ICON_STOP_TRAM = icon({
     popupAnchor: [8, -8]
 })
 
+const ICON_STOP_METRO = icon({
+    iconUrl: (new URL('../../../assets/metropysakki.png', import.meta.url)).toString(),
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
+    popupAnchor: [8, -8]
+})
+
+const ICON_STOP_TRAIN = icon({
+    iconUrl: (new URL('../../../assets/junapysakki.png', import.meta.url)).toString(),
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
+    popupAnchor: [8, -8]
+})
+
 const ICON_BUS = divIcon({
     className: 'x-bus-icon', 
     html: `<div class="inner" data-tram="false">`
@@ -63,21 +77,83 @@ const ICON_TRAM = divIcon({
     + `</div>`
 });
 
+const ICON_METRO = divIcon({
+    className: 'x-bus-icon', 
+    html: `<div class="inner" data-metro="true">`
+        + `<img src="${(new URL('../../../assets/metro.png', import.meta.url)).toString()}"/>`
+        + `<span class="vehicle-number" style="transform: rotate(0deg);">R</span>`
+    + `</div>`
+});
+
+const ICON_TRAIN = divIcon({
+    className: 'x-bus-icon', 
+    html: `<div class="inner" data-metro="true">`
+        + `<img src="${(new URL('../../../assets/juna.png', import.meta.url)).toString()}"/>`
+        + `<span class="vehicle-number" style="transform: rotate(0deg);">R</span>`
+    + `</div>`
+});
+
+const iconTypes: Record<string, any> = {
+    RAIL: ICON_TRAIN,
+    BUS: ICON_BUS,
+    SUBWAY: ICON_METRO,
+    TRAM: ICON_TRAM
+};
+
+const stopTypes: Record<string, any> = {
+    RAIL: ICON_STOP_TRAIN,
+    BUS: ICON_STOP,
+    SUBWAY: ICON_STOP_METRO,
+    TRAM: ICON_STOP_TRAM
+};
+
+const typeColors: Record<string, string> = {
+    BUS: '#20264d',
+    TRAM: '#4d2020',
+    SUBWAY: '#a85c00',
+    RAIL: '#00a80b',
+    FERRY: '#4a008a'
+};
+
 export default function NysseMapNew(props: {
+    feed: string,
     filteredLines: string[] | null,
     setFilteredLines: Dispatch<StateUpdater<string[] | null>>
 }) {
     
     const refMapContainer = useRef<HTMLDivElement>(null);
+    const [mapCenter, setMapCenter] = useState<[number, number]>([61.496634, 23.756104]);
+    const [isLoaded, setLoaded] = useState<boolean>(false);
     
     const {filteredLines, setFilteredLines} = props;
     const [isLinePickerOpen, setLinePickerOpen] = useState<boolean>(false);
     
     const [popupBusLine, setPopupBusLine] = useState<any | null>(null);
+    const [allRoutes, setAllRoutes] = useState<Record<string, IGenericRoute>>({});
     
+    const isActuallyLoaded = isLoaded && Object.keys(allRoutes).length > 0;
+    
+        
+    useEffect(() => {
+        fetch(`/api/getAllRoutes/${encodeURIComponent(props.feed)}`)
+            .then(x => x.json())
+            .then(rawRoutes => {
+                if (!rawRoutes || !rawRoutes.data.routes) {
+                    console.error(`Invalid data?`);
+                    return;
+                }
+                setAllRoutes(Object.fromEntries(rawRoutes.data.routes.map((r: any) => [r.gtfsId, r])));
+            })
+    }, [props.feed]);
+        
     useEffect(() => {
         
         if (!refMapContainer.current) {
+            return;
+        }
+        
+        if (Object.keys(allRoutes).length == 0) {
+            console.log(`waiting for route data...`);
             return;
         }
         
@@ -88,7 +164,7 @@ export default function NysseMapNew(props: {
             markerZoomAnimation: false,
             // @ts-ignore
             doubleTapDragZoomOptions: { reverse: true },
-            center: [61.496634, 23.756104]
+            center: mapCenter
         });
         
         map.addLayer(L.tileLayer(`https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`, {
@@ -136,15 +212,22 @@ export default function NysseMapNew(props: {
         
         // STOP MARKERS
         const stopMarkers = new Map<string, Marker>();
-        getAllStops()
+        getAllStops(props.feed)
             .then(stopsRaw => {
                 const rawData: IStopData[] = [...stopsRaw.data.stops].filter(sd => !!sd.vehicleMode);
+                
+                const latC = rawData.reduce((p, c) => p+c.lat, 0)/rawData.length;
+                const lonC = rawData.reduce((p, c) => p+c.lon, 0)/rawData.length;
+                setMapCenter([latC, lonC]);
+                __map?.panTo([latC, lonC]);
+                setLoaded(true);
+                
                 for (const stop of rawData) {
                     
                     if (!stop.lat || !stop.lon) continue;
                     
                     const stopMarker = L.marker([stop.lat, stop.lon], {
-                        icon: stop.vehicleMode == 'TRAM' ? ICON_STOP_TRAM : ICON_STOP
+                        icon: stopTypes[stop.vehicleMode] || ICON_STOP //stop.vehicleMode == 'TRAM' ? ICON_STOP_TRAM : ICON_STOP
                     });
                     
                     stopMarker.addEventListener('click', () => {
@@ -168,7 +251,7 @@ export default function NysseMapNew(props: {
                                 content.style.width = '';
                             }
                             render(<Fragment>
-                                <SingleNysseStop stopId={stop.gtfsId}/>
+                                <SingleNysseStop feed={props.feed} stopId={stop.gtfsId}/>
                             </Fragment>, popupInner);
                         }
                         
@@ -204,11 +287,18 @@ export default function NysseMapNew(props: {
         let shownRoutes: string[] | null = null;
         async function updateVehicleMarkers() {
             
-            const x = await fetch(`/api/realtime?t=${Date.now()}`);
+            const x = await fetch(`/api/realtime/${encodeURIComponent(props.feed)}?t=${Date.now()}`);
             const vehicles: IRealtimeVehicle[] = (await x.json())
                 .filter((v: IRealtimeVehicle) => !shownRoutes || shownRoutes.includes(v.headsign));
             
             for (const veh of vehicles) {
+                
+                //console.log(veh.walttiRouteId, allRoutes);
+                const vehRoute = allRoutes[props.feed + ':' + (veh.walttiRouteId || veh.headsign)];
+                const fuzzyHeadsign = veh.walttiRouteId || veh.headsign;
+                const headsign = veh.walttiRouteId
+                    ? (vehRoute?.shortName ?? '???')
+                    : veh.headsign;
                 
                 if (!vehicleMarkers.has(veh.vehicleRef)) {
                     
@@ -218,7 +308,7 @@ export default function NysseMapNew(props: {
                             rotationAngle: veh.bearing,
                             rotationOrigin: 'center',
                             zIndexOffset: 100,
-                            icon: TRAM_HEADSIGNS.includes(veh.headsign) ? ICON_TRAM : ICON_BUS //getBusIcon(veh.headsign, Math.round(veh.bearing / 22.5)*22.5, TRAM_HEADSIGNS.includes(veh.headsign))
+                            icon: iconTypes[vehRoute.mode] || ICON_BUS //vehRoute.mode != 'BUS' ? ICON_TRAM : ICON_BUS
                         }
                     );
                     
@@ -231,7 +321,7 @@ export default function NysseMapNew(props: {
                         })
                             .setLatLng(veh.location)
                             .setContent(`
-                                <b><span class="headsign">${encodeHTML(veh.headsign)}</span> ${encodeHTML(veh.destination)}</b> <br/>
+                                <b><span class="headsign">${encodeHTML(headsign)}</span> ${encodeHTML(veh.destination)}</b> <br/>
                                 <span class="${`time ${Math.abs(veh.delay) < 0.5 ? '' : (veh.delay < 0 ? 'early' : 'delayed')}`}">${(Math.abs(veh.delay)/1000/60).toFixed(1)} min ${veh.delay < 0 ? 'etuajassa' : 'myöhässä'}</span>
                             `);
                         
@@ -239,13 +329,13 @@ export default function NysseMapNew(props: {
                         let tripUpdateTimeout: any = null;
                         
                         const updateRouteInfo = () => {
-                            findRouteDetails(veh.headsign, parseInt(veh.direction), veh.tripDate, veh.tripTime)
+                            findRouteDetails(fuzzyHeadsign, parseInt(veh.direction), veh.tripDate, veh.tripTime, props.feed)
                                 .then(trip => {
                                     
                                     setPopupBusLine(trip || null);
                                     
                                     if (!trip) {
-                                        console.error(`fuzzy trip search failed for ${veh.headsign}`);
+                                        console.error(`fuzzy trip search failed for ${headsign}`);
                                         return;
                                     }
                                     
@@ -277,7 +367,7 @@ export default function NysseMapNew(props: {
                                 })
                         }
                         
-                        findRouteDetails(veh.headsign, parseInt(veh.direction), veh.tripDate, veh.tripTime)
+                        findRouteDetails(fuzzyHeadsign, parseInt(veh.direction), veh.tripDate, veh.tripTime, props.feed)
                             .then(trip => {
                                     
                                 setPopupBusLine(trip || null);
@@ -288,12 +378,12 @@ export default function NysseMapNew(props: {
                                 }
                                 
                                 if (!trip) {
-                                    console.error(`fuzzy trip search failed for ${veh.headsign}`);
+                                    console.error(`fuzzy trip search failed for ${headsign}`);
                                     return;
                                 }
                                 
                                 shownPath = L.polyline(trip.geometry.map(([lo, la]: [number, number]) => [la, lo]), {
-                                    color: TRAM_HEADSIGNS.includes(veh.headsign) ? '#4d2020' : '#20264d',
+                                    color: typeColors[vehRoute.mode] || '#20264d', //TRAM_HEADSIGNS.includes(headsign) ? ,
                                     weight: 10
                                 });
                                 shownPath.addTo(map);
@@ -374,13 +464,13 @@ export default function NysseMapNew(props: {
                 const markerText = m?.getElement()?.querySelector('.inner span');
                 if (markerText && markerText instanceof HTMLElement) {
                     markerText.style.transform = `rotate(-${veh.bearing}deg)`;
-                    markerText.textContent = `${veh.headsign}`;
+                    markerText.textContent = `${headsign}`;
                 }
                 
                 const popupBus = m?.getPopup();
                 if (popupBus) {
                     popupBus.setContent(`
-                        <b><span class="headsign">${encodeHTML(veh.headsign)}</span> ${encodeHTML(veh.destination)}</b> <br/>
+                        <b><span class="headsign">${encodeHTML(headsign)}</span> ${encodeHTML(veh.destination)}</b> <br/>
                         <span class="${`time ${Math.abs(veh.delay) < 0.5 ? '' : (veh.delay < 0 ? 'early' : 'delayed')}`}">${(Math.abs(veh.delay)/1000/60).toFixed(1)} min ${veh.delay < 0 ? 'etuajassa' : 'myöhässä'}</span>
                     `);
                 }
@@ -434,14 +524,17 @@ export default function NysseMapNew(props: {
             
         };
         
-    }, []);
+    }, [allRoutes]);
     
     useEffect(() => {
         __mapState?.filterLines(props.filteredLines);
     }, [props.filteredLines]);
     
     return <div className='x-floating-map'
-        style={{  }}
+        style={{
+            opacity: isActuallyLoaded ? 1 : 0.5,
+            filter: isActuallyLoaded ? '' : 'grayscale(80%) blur(5px)'
+        }}
         >
         <div className='x-floating-map-container'>
             <div className='x-map' ref={refMapContainer} style={{
@@ -481,7 +574,7 @@ export default function NysseMapNew(props: {
                     setLinePickerOpen(false);
                 }}
                 initialSelection={filteredLines}
-                feed='tampere'
+                feed={props.feed}
                 />}
                 
     </div>;
@@ -498,5 +591,8 @@ export interface IRealtimeVehicle {
     delay: number,
     vehicleRef: string,
     tripDate: string,
-    tripTime: string
+    tripTime: string,
+    
+    licensePlate?: string,
+    walttiRouteId?: string
 }

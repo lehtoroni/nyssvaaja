@@ -42,7 +42,9 @@ const ICON_STOP_SELECTED = icon({
 })
 
 export default function StopSelectorMap(props: {
+    feed: string,
     selected: string[],
+    center: [number, number],
     onPick: (id: string) => any
 }) {
     
@@ -64,7 +66,7 @@ export default function StopSelectorMap(props: {
             markerZoomAnimation: false,
             // @ts-ignore
             doubleTapDragZoomOptions: { reverse: true },
-            center: [61.496634, 23.756104]
+            center: props.center //[61.496634, 23.756104]
         });
         
         map.addLayer(L.tileLayer(`https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`, {
@@ -102,7 +104,7 @@ export default function StopSelectorMap(props: {
         // STOP MARKERS
         const stopMarkers = new Map<string, Marker>();
         const tramStops: string[] = [];
-        getAllStops()
+        getAllStops(props.feed)
             .then(stopsRaw => {
                 const rawData: IStopData[] = [...stopsRaw.data.stops].filter(sd => !!sd.vehicleMode);
                 for (const stop of rawData) {

@@ -31,13 +31,13 @@ export default function NysseAlerts(props: { feed: string }) {
         
         function upd() {
             
-            fetch(`/api/getCanceledTrips?t=${Date.now()}`)
+            fetch(`/api/getCanceledTrips/${encodeURIComponent(props.feed)}?t=${Date.now()}`)
                 .then(y => y.json())
                 .then(canceledRaw => {
                     setCanceled((canceledRaw?.data?.canceledTrips?.edges ?? []).map((n: any) => n.node as ICanceledTrip).filter((can: ICanceledTrip) => can.trip.gtfsId.startsWith('tampere:')));
                 });
             
-            fetch(`/api/getAlerts`)
+            fetch(`/api/getAlerts/${encodeURIComponent(props.feed)}`)
                 .then(x => x.json())
                 .then(raw => {
                     
