@@ -44,6 +44,10 @@ export default function NysseOverallSituation(props: { feed: string }) {
         
         <h1 className='text-center'>🕰️ Yleistilanne</h1>
         
+        <div className='alert alert-secondary my-4'>
+            <b>Huomio, huomio!</b> Yleistilannenäkymän viivetiedot eivät tällä hetkellä päivity oikein, koska Nyssvääjä siirtyi käyttämään eri datalähdettä, josta matkaviivetietoja ei vielä haeta.
+        </div>
+        
         <p className='text-center'>
             Tässä näet kaikki reaaliaikaisen seurannan tuntemat kulkuvälineet ja niiden aikataulutilanteen.
             Huomaathan, että tämä toiminto on kokeellinen. Varmista oikeat tiedot aina Nyssen reittioppaasta.
