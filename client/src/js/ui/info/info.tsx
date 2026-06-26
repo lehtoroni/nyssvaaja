@@ -18,6 +18,7 @@ export default function AppInfo(props: { feed: string, setFeed: (toFeed: string)
         feeds: Record<string, string>,
         realtime: string[]
     } | null>(null);
+    const realtime = useMemo(() => feedsMap?.realtime.map(r => r.toLowerCase()) ?? [], [feedsMap]);
     
     useEffect(() => {
         fetch(`/api/getFeeds`)
@@ -146,7 +147,7 @@ export default function AppInfo(props: { feed: string, setFeed: (toFeed: string)
                         }}
                         >
                         {Object.entries(feedsMap.feeds).map((en, i) =>
-                            <option value={en[0]}>{feedsMap.realtime.includes(en[0].toLowerCase()) ? '📍' : ''} {capitalizeFirst(en[0])} ({en[1]})</option>
+                            <option value={en[0]}>{capitalizeFirst(en[0])} {realtime.includes(en[0].toLowerCase()) ? '📍 ' : ''}({en[1]})</option>
                         )}
                     </select>
                 </Fragment>}

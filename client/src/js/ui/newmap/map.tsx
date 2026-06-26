@@ -293,11 +293,9 @@ export default function NysseMapNew(props: {
             
             for (const veh of vehicles) {
                 
-                //console.log(veh.walttiRouteId, allRoutes);
-                
+                // stupid hack for Tampere's route ID weirdness.... reeEEEE
                 const vehRefInitial = veh.vehicleRef.split('_')[0];
                 let routeId = veh.walttiRouteId || '';
-                // stupid hack for Tampere's route ID weirdness.... reeEEEE
                 if (routeId.endsWith(vehRefInitial)) {
                     routeId = routeId.slice(0, -vehRefInitial.length);
                 }
@@ -330,7 +328,7 @@ export default function NysseMapNew(props: {
                             .setLatLng(veh.location)
                             .setContent(`
                                 <b><span class="headsign">${encodeHTML(headsign)}</span> ${encodeHTML(veh.destination)}</b> <br/>
-                                <span class="${`time ${Math.abs(veh.delay) < 0.5 ? '' : (veh.delay < 0 ? 'early' : 'delayed')}`}">${(Math.abs(veh.delay)/1000/60).toFixed(1)} min ${veh.delay < 0 ? 'etuajassa' : 'myöhässä'}</span>
+                                <span class="${`time ${Math.abs(veh.delay) < 0.5 ? '' : (veh.delay < 0 ? 'early' : 'delayed')}`}"><i>Laskee...</i></span>
                             `);
                         
                         let shownPath: Polyline | null = null;
@@ -339,6 +337,32 @@ export default function NysseMapNew(props: {
                         const updateRouteInfo = () => {
                             findRouteDetails(fuzzyHeadsign, parseInt(veh.direction), veh.tripDate, veh.tripTime, props.feed)
                                 .then(trip => {
+                                    
+                                    // stupid hack for delay calculation
+                                    // (Tampere had delay precalculated but Digitransit MQTT doesn't :c )
+                                    if (vehRoute) {
+                                        const getStopTime = (st: any) => new Date(st.serviceDay*1000 + st.realtimeDeparture*1000).getTime();
+                                        const lastStops = trip.stoptimesForDate
+                                            .filter((st: any) => getStopTime(st) <= Date.now())
+                                            .toSorted((stA: any, stB: any) => {
+                                                return getStopTime(stB) - getStopTime(stA);
+                                            });
+                                        const lastStop = lastStops[0];
+                                        console.log('last stop: ', lastStop);
+                                        if (lastStop) {
+                                            veh.delay = lastStop.realtimeDeparture*1000 - lastStop.scheduledDeparture*1000;
+                                            popupBus.setContent(`
+                                                <b><span class="headsign">${encodeHTML(headsign)}</span> ${encodeHTML(veh.destination)}</b> <br/>
+                                                <span class="${`time ${Math.abs(veh.delay) < 0.5 ? '' : (veh.delay < 0 ? 'early' : 'delayed')}`}">${(Math.abs(veh.delay)/1000/60).toFixed(1)} min ${veh.delay < 0 ? 'etuajassa' : 'myöhässä'}</span>
+                                            `);
+                                        } else {
+                                            veh.delay = 0;
+                                            popupBus.setContent(`
+                                                <b><span class="headsign">${encodeHTML(headsign)}</span> ${encodeHTML(veh.destination)}</b> <br/>
+                                                <span class="time early"><i>Aikataulussa</i></span>
+                                            `);
+                                        }
+                                    }
                                     
                                     setPopupBusLine(trip || null);
                                     
@@ -377,6 +401,32 @@ export default function NysseMapNew(props: {
                         
                         findRouteDetails(fuzzyHeadsign, parseInt(veh.direction), veh.tripDate, veh.tripTime, props.feed)
                             .then(trip => {
+                
+                                // stupid hack for delay calculation
+                                // (Tampere had delay precalculated but Digitransit MQTT doesn't :c )
+                                if (veh.delay == 0 && vehRoute) {
+                                    const getStopTime = (st: any) => new Date(st.serviceDay*1000 + st.realtimeDeparture*1000).getTime();
+                                    const lastStops = trip.stoptimesForDate
+                                        .filter((st: any) => getStopTime(st) <= Date.now())
+                                        .toSorted((stA: any, stB: any) => {
+                                            return getStopTime(stB) - getStopTime(stA);
+                                        });
+                                    const lastStop = lastStops[0];
+                                    console.log('last stop: ', lastStop);
+                                    if (lastStop) {
+                                        veh.delay = lastStop.realtimeDeparture*1000 - lastStop.scheduledDeparture*1000;
+                                        popupBus.setContent(`
+                                            <b><span class="headsign">${encodeHTML(headsign)}</span> ${encodeHTML(veh.destination)}</b> <br/>
+                                            <span class="${`time ${Math.abs(veh.delay) < 0.5 ? '' : (veh.delay < 0 ? 'early' : 'delayed')}`}">${(Math.abs(veh.delay)/1000/60).toFixed(1)} min ${veh.delay < 0 ? 'etuajassa' : 'myöhässä'}</span>
+                                        `);
+                                    } else {
+                                        veh.delay = 0;
+                                        popupBus.setContent(`
+                                            <b><span class="headsign">${encodeHTML(headsign)}</span> ${encodeHTML(veh.destination)}</b> <br/>
+                                            <span class="time early"><i>Aikataulussa</i></span>
+                                        `);
+                                    }
+                                }
                                     
                                 setPopupBusLine(trip || null);
                                 
@@ -477,10 +527,12 @@ export default function NysseMapNew(props: {
                 
                 const popupBus = m?.getPopup();
                 if (popupBus) {
+                    /*
                     popupBus.setContent(`
                         <b><span class="headsign">${encodeHTML(headsign)}</span> ${encodeHTML(veh.destination)}</b> <br/>
-                        <span class="${`time ${Math.abs(veh.delay) < 0.5 ? '' : (veh.delay < 0 ? 'early' : 'delayed')}`}">${(Math.abs(veh.delay)/1000/60).toFixed(1)} min ${veh.delay < 0 ? 'etuajassa' : 'myöhässä'}</span>
+                        <span class="${`time ${Math.abs(veh.delay) < 0.5 ? '' : (veh.delay < 0 ? 'early' : 'delayed')}`}"><i>Laskee...</i></span>
                     `);
+                    */
                 }
                 
             }
@@ -495,7 +547,7 @@ export default function NysseMapNew(props: {
                 }
             }
             
-            toUpdate = setTimeout(() => updateVehicleMarkers(), 5000)
+            toUpdate = setTimeout(() => updateVehicleMarkers(), 4000)
             
         }
         

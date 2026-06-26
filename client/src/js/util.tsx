@@ -117,10 +117,35 @@ export async function getAllStops(feed: string) {
     }
     
     if (window.localStorage) {
-        window.localStorage.setItem(KEY_ALL_STOPS + '_' + feed, JSON.stringify({
-            timestamp: Date.now(),
-            data
-        }))
+        try {
+            window.localStorage.setItem(KEY_ALL_STOPS + '_' + feed, JSON.stringify({
+                timestamp: Date.now(),
+                data
+            }))
+        } catch (err) {
+            
+            console.error(`Oh no. Storage quota full?`);
+            console.log(`Clearing old storage...`);
+            
+            const toRemove = [];
+            for (let i = 0; i < window.localStorage.length; i++) {
+                const k = window.localStorage.key(i);
+                if (k && k.startsWith(KEY_ALL_STOPS)) {
+                    toRemove.push(k);
+                }
+            }
+            
+            toRemove.forEach(k => window.localStorage.removeItem(k));
+            try {
+                window.localStorage.setItem(KEY_ALL_STOPS + '_' + feed, JSON.stringify({
+                    timestamp: Date.now(),
+                    data
+                }))
+            } catch (err) {
+                console.error(`Still erroring out when caching :(`);
+            }
+            
+        }
     }
     
     return data;
