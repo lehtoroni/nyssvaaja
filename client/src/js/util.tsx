@@ -1,5 +1,9 @@
 import { LatLngTuple } from 'leaflet';
 import { h } from 'preact';
+import { IGhostTrip } from 'src/common/types';
+
+export type ArrayElement<ArrayType extends readonly unknown[]> = 
+  ArrayType extends readonly (infer ElementType)[] ? ElementType : never;
 
 const STORAGE_VERSION = `3`;
 export const FEED_ID = `tampere`;
@@ -79,6 +83,88 @@ export async function findRouteDetails(routeHeadsign: string, direction: number,
             dateRef,
             timeRef
         })
+    });
+    
+    if (!x.ok || x.status != 200) {
+        throw new Error(`Fetch error: ${x.status} ${x.statusText}`);
+    }
+    
+    let res = await x.json();
+    return res;
+    
+}
+
+export type ILazyFindQuery = {
+    routeHeadsign: string,
+    direction: number,
+    dateRef: string,
+    timeRef: string,
+    feed: string
+};
+
+const lazyFindQueue: [ILazyFindQuery, (d: any) => any, (err: any) => any][] = [];
+let isLazyFetching = false;
+
+setInterval(() => {
+    
+    if (lazyFindQueue.length > 0 && !isLazyFetching) {
+        
+        const toProcess = lazyFindQueue.splice(0, 5);
+        isLazyFetching = true;
+        
+        console.log(`lazy fetching ${toProcess.length} fuzzy trips... (for ghosts?)`);
+        
+        findRouteDetailsMulti(toProcess.map(tp => tp[0]))
+            .then(raw => {
+                console.log(raw);
+                toProcess.forEach((tp, i) => {
+                    const tpData = raw.data[`t_${i}`];
+                    if (tpData) {
+                        tp[1](raw.data[`t_${i}`]);
+                    } else {
+                        tp[2](new Error(`No data available: ${tpData}`));
+                    }
+                });
+            })
+            .catch(err => {
+                console.error(err);
+                toProcess.forEach(tp => tp[2](err));
+            })
+            .finally(() => {
+                isLazyFetching = false;
+            })
+        
+    }
+    
+}, 1000);
+
+export async function lazyFindRouteDetails(routeHeadsign: string, direction: number, dateRef: string, timeRef: string, feed: string): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
+        lazyFindQueue.push([{
+            routeHeadsign,
+            direction,
+            dateRef,
+            timeRef,
+            feed
+        }, resolve, reject]);
+    });
+}
+
+export async function findRouteDetailsMulti(search: ILazyFindQuery[]) {
+    
+    //console.log(routeHeadsign, direction, dateRef, timeRef, feed);
+    const x = await fetch(`/api/getMultiRouteDetails/${encodeURIComponent((search[0] || {}).feed || 'tampere')}`, {
+        method: 'post',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(search.map(s => {
+            if (!s.routeHeadsign.startsWith(`${s.feed}:`)) {
+                s.routeHeadsign = `${s.feed}:${s.routeHeadsign}`;
+            }
+            if (s.timeRef.includes(':')) {
+                s.timeRef = s.timeRef.split(':').join('');
+            }
+            return s;
+        }))
     });
     
     if (!x.ok || x.status != 200) {
@@ -292,3 +378,22 @@ export function calculateTripLengthKm(coordinates: [number, number][]) {
     return totalDistance;
     
 }
+
+export function getGhostTripLastStop(trip: IGhostTrip | null) {
+    
+    if (!trip) {
+        return null;
+    }
+    
+    const getStopTime = (st: ArrayElement<IGhostTrip['stoptimesForDate']>) => new Date(st.serviceDay*1000 + (st.realtimeDeparture || st.scheduledDeparture)*1000).getTime();
+    const lastStops = trip.stoptimesForDate
+        .filter(st => getStopTime(st) <= Date.now())
+        .toSorted((stA: any, stB: any) => {
+            return getStopTime(stB) - getStopTime(stA);
+        });
+    const lastStop = lastStops[0];
+    
+    return lastStop;
+    
+}
+

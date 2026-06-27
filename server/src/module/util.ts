@@ -37,3 +37,15 @@ export function dateToDashed(rawDate: string) {
 export function dashedToUndashedDate(rawDate: string) {
     return rawDate.split('-').join('');
 }
+
+export function getDayRemainingSeconds() {
+    
+    const now = new Date();
+    const midnight = new Date(now);
+    midnight.setHours(23, 59, 59, 999);
+    
+    const secondsUntilMidnight = Math.floor((midnight.getTime() - now.getTime()) / 1000);
+    
+    return Math.min(secondsUntilMidnight, 6 * 60 * 60);
+    
+}

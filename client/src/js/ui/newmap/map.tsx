@@ -7,11 +7,12 @@ import { signal } from '@preact/signals';
 import 'leaflet-rotatedmarker';
 import 'leaflet-doubletapdrag';
 import 'leaflet-doubletapdragzoom';
-import { encodeHTML, findRouteDetails, getAllStops, IGenericRoute, RemixIcon } from '../../util';
+import { encodeHTML, findRouteDetails, getAllStops, getGhostTripLastStop, IGenericRoute, lazyFindRouteDetails, RemixIcon } from '../../util';
 import { IStopData } from '../../app';
 import { NysseStop, SingleNysseStop } from '../Monitor';
 import { LinePicker } from './linepicker';
 import { BusInstanceMonitor } from './businstance';
+import { IGhostTrip, IRunningTrip } from 'src/common/types';
 
 let __map: LeafletMap | null = null;
 let __mapState: {
@@ -42,6 +43,13 @@ const ICON_STOP = icon({
 
 const ICON_STOP_TRAM = icon({
     iconUrl: (new URL('../../../assets/ratikka.png', import.meta.url)).toString(),
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
+    popupAnchor: [8, -8]
+})
+
+const ICON_STOP_FERRY = icon({
+    iconUrl: (new URL('../../../assets/lauttapysakki.png', import.meta.url)).toString(),
     iconSize: [16, 16],
     iconAnchor: [8, 8],
     popupAnchor: [8, -8]
@@ -79,7 +87,7 @@ const ICON_TRAM = divIcon({
 
 const ICON_METRO = divIcon({
     className: 'x-bus-icon', 
-    html: `<div class="inner" data-metro="true">`
+    html: `<div class="inner">`
         + `<img src="${(new URL('../../../assets/metro.png', import.meta.url)).toString()}"/>`
         + `<span class="vehicle-number" style="transform: rotate(0deg);">R</span>`
     + `</div>`
@@ -87,8 +95,24 @@ const ICON_METRO = divIcon({
 
 const ICON_TRAIN = divIcon({
     className: 'x-bus-icon', 
-    html: `<div class="inner" data-metro="true">`
+    html: `<div class="inner">`
         + `<img src="${(new URL('../../../assets/juna.png', import.meta.url)).toString()}"/>`
+        + `<span class="vehicle-number" style="transform: rotate(0deg);">R</span>`
+    + `</div>`
+});
+
+const ICON_GHOST = divIcon({
+    className: 'x-bus-icon', 
+    html: `<div class="inner">`
+        + `<img src="${(new URL('../../../assets/haamu.png', import.meta.url)).toString()}"/>`
+        + `<span class="vehicle-number" style="transform: rotate(0deg);">R</span>`
+    + `</div>`
+});
+
+const ICON_FERRY = divIcon({
+    className: 'x-bus-icon', 
+    html: `<div class="inner">`
+        + `<img src="${(new URL('../../../assets/lautta.png', import.meta.url)).toString()}"/>`
         + `<span class="vehicle-number" style="transform: rotate(0deg);">R</span>`
     + `</div>`
 });
@@ -97,14 +121,16 @@ const iconTypes: Record<string, any> = {
     RAIL: ICON_TRAIN,
     BUS: ICON_BUS,
     SUBWAY: ICON_METRO,
-    TRAM: ICON_TRAM
+    TRAM: ICON_TRAM,
+    FERRY: ICON_FERRY
 };
 
 const stopTypes: Record<string, any> = {
     RAIL: ICON_STOP_TRAIN,
     BUS: ICON_STOP,
     SUBWAY: ICON_STOP_METRO,
-    TRAM: ICON_STOP_TRAM
+    TRAM: ICON_STOP_TRAM,
+    FERRY: ICON_STOP_FERRY
 };
 
 const typeColors: Record<string, string> = {
@@ -156,6 +182,8 @@ export default function NysseMapNew(props: {
             console.log(`waiting for route data...`);
             return;
         }
+        
+        let vehFetchCount = 0;
         
         const map = L.map(refMapContainer.current, {
             preferCanvas: true,
@@ -315,12 +343,22 @@ export default function NysseMapNew(props: {
         
         // VEHICLE MARKERS
         const vehicleMarkers = new Map<string, Marker>();
+        const ghostMarkers = new Map<string, Marker>();
+        const ghostTrips = new Map<string, IGhostTrip>();
+        
         let shownRoutes: string[] | null = null;
+        
         async function updateVehicleMarkers() {
             
             const x = await fetch(`/api/realtime/${encodeURIComponent(props.feed)}?t=${Date.now()}`);
             const vehicles: IRealtimeVehicle[] = (await x.json())
                 .filter((v: IRealtimeVehicle) => !shownRoutes || shownRoutes.includes(v.headsign));
+            
+            let supposedTrips: IRunningTrip[] = [];
+            if (vehFetchCount > 1) {
+                const z = await fetch(`/api/getCurrentTrips/${encodeURIComponent(props.feed)}?t=${Date.now()}`);
+                supposedTrips = (await z.json());
+            }
             
             for (const veh of vehicles) {
                 
@@ -337,6 +375,10 @@ export default function NysseMapNew(props: {
                     ? (vehRoute?.shortName ?? '???')
                     : veh.headsign;
                 
+                if (!vehRoute) {
+                    console.warn(`unknown route? ${props.feed}:${routeId}`);
+                }
+                
                 const vehInternalRef = JSON.stringify([fuzzyHeadsign, parseInt(veh.direction), veh.tripDate, veh.tripTime, props.feed]);
                 //console.log(vehInternalRef);
                 
@@ -351,7 +393,7 @@ export default function NysseMapNew(props: {
                             rotationAngle: veh.bearing,
                             rotationOrigin: 'center',
                             zIndexOffset: 100,
-                            icon: iconTypes[vehRoute.mode] || ICON_BUS //vehRoute.mode != 'BUS' ? ICON_TRAM : ICON_BUS
+                            icon: iconTypes[vehRoute?.mode ?? ''] || ICON_BUS //vehRoute.mode != 'BUS' ? ICON_TRAM : ICON_BUS
                         }
                     );
                     
@@ -364,7 +406,7 @@ export default function NysseMapNew(props: {
                         })
                             .setLatLng(veh.location)
                             .setContent(`
-                                <b><span class="headsign">${encodeHTML(headsign)}</span> ${encodeHTML(veh.destination)}</b> <br/>
+                                <b><span class="headsign">${encodeHTML(headsign)}</span> ${encodeHTML(veh.destination || vehRoute.longName)}</b> <br/>
                                 <span class="${`time ${Math.abs(veh.delay) < 0.5 ? '' : (veh.delay < 0 ? 'early' : 'delayed')}`}"><i>Hakee...</i></span>
                             `);
                         
@@ -388,13 +430,13 @@ export default function NysseMapNew(props: {
                                         if (lastStop) {
                                             veh.delay = lastStop.realtimeDeparture*1000 - lastStop.scheduledDeparture*1000;
                                             popupBus.setContent(`
-                                                <b><span class="headsign">${encodeHTML(headsign)}</span> ${encodeHTML(veh.destination)}</b> <br/>
+                                                <b><span class="headsign">${encodeHTML(headsign)}</span> ${encodeHTML(veh.destination || trip.tripHeadsign || vehRoute.longName)}</b> <br/>
                                                 <span class="${`time ${Math.abs(veh.delay) < 0.5 ? '' : (veh.delay < 0 ? 'early' : 'delayed')}`}">${(Math.abs(veh.delay)/1000/60).toFixed(1)} min ${veh.delay < 0 ? 'etuajassa' : 'myöhässä'}</span>
                                             `);
                                         } else {
                                             veh.delay = 0;
                                             popupBus.setContent(`
-                                                <b><span class="headsign">${encodeHTML(headsign)}</span> ${encodeHTML(veh.destination)}</b> <br/>
+                                                <b><span class="headsign">${encodeHTML(headsign)}</span> ${encodeHTML(veh.destination || trip.tripHeadsign || vehRoute.longName)}</b> <br/>
                                                 <span class="time early"><i>Aikataulussa</i></span>
                                             `);
                                         }
@@ -418,7 +460,7 @@ export default function NysseMapNew(props: {
                                         }
                                         
                                         shownPath = L.polyline(trip.geometry.map(([lo, la]: [number, number]) => [la, lo]), {
-                                            color: typeColors[vehRoute.mode] || '#20264d', //TRAM_HEADSIGNS.includes(headsign) ? ,
+                                            color: typeColors[vehRoute?.mode ?? ''] || '#20264d', //TRAM_HEADSIGNS.includes(headsign) ? ,
                                             weight: 10
                                         });
                                         shownPath.addTo(map);
@@ -515,6 +557,13 @@ export default function NysseMapNew(props: {
                         
                     });
                     
+                    if (ghostMarkers.get(vehInternalRef)) {
+                        console.log(`vehicle ${vehInternalRef} is no longer a ghost!`);
+                        ghostMarkers.get(vehInternalRef)?.remove();
+                        ghostMarkers.delete(vehInternalRef);
+                        ghostTrips.delete(vehInternalRef);
+                    }
+                    
                     m.addTo(map);
                     vehicleMarkers.set(vehInternalRef, m);
                     
@@ -532,6 +581,103 @@ export default function NysseMapNew(props: {
                 
             }
             
+            for (const trip of supposedTrips) {
+                
+                const tzOffset = (new Date()).getTimezoneOffset() * 60000;
+                const vehD = new Date(parseInt(trip.departureStoptime.serviceDay as any)*1000 + parseInt(trip.departureStoptime.scheduledDeparture as any)*1000 - tzOffset);
+                const vehInternalRef = JSON.stringify([
+                    trip.route.gtfsId.split(':').at(-1),
+                    parseInt(trip.directionId as any),
+                    vehD.toISOString().split('T')[0],
+                    vehD.toISOString().split('T')[1].slice(0, -5),
+                    props.feed
+                ]);
+                
+                if (!vehicleMarkers.get(vehInternalRef)) {
+                    
+                    if (trip.departureStoptime.realtime
+                        && trip.departureStoptime.realtimeDeparture > trip.departureStoptime.scheduledDeparture) {
+                        console.log(`"ghost" ${vehInternalRef} is just late, probably`);
+                        continue;
+                    }
+                    
+                    console.log(`ghost bus: ${vehInternalRef}`);
+                    const vehRoute = allRoutes[trip.route.gtfsId];
+                    const headsign = vehRoute?.shortName ?? '';
+                    
+                    if (!ghostMarkers.get(vehInternalRef)) {
+                        
+                        const m = L.marker(
+                            [0, 0],
+                            {
+                                rotationAngle: 0,
+                                rotationOrigin: 'center',
+                                zIndexOffset: 100,
+                                icon: ICON_GHOST,
+                                //opacity: 0.5
+                            }
+                        );
+                        m.addTo(map);
+                        ghostMarkers.set(vehInternalRef, m);
+                        
+                        const markerText = m?.getElement()?.querySelector('.inner span');
+                        const el = m?.getElement();
+                        if (el) {
+                            el.style.filter = 'grayscale(0.8)';
+                        }
+                        if (markerText && markerText instanceof HTMLElement) {
+                            markerText.style.transform = `rotate(-${0}deg)`;
+                            markerText.textContent = `${headsign}`;
+                        }
+                        
+                        if (vehFetchCount > 1) {
+                            lazyFindRouteDetails(
+                                trip.route.gtfsId.split(':').at(-1) || '',
+                                parseInt(trip.directionId as any),
+                                vehD.toISOString().split('T')[0],
+                                vehD.toISOString().split('T')[1].slice(0, -5),
+                                props.feed
+                            )
+                                .then((trip: IGhostTrip) => {
+                                    
+                                    if (!ghostMarkers.has(vehInternalRef)) {
+                                        console.log(`trip ${vehInternalRef} no longer a ghost? requested data will not be stored`);
+                                        return;
+                                    }
+                                    
+                                    console.log(`ghost trip for ${vehInternalRef}:`, trip);
+                                    ghostTrips.set(vehInternalRef, trip);
+                                    
+                                    const lastStop = getGhostTripLastStop(trip);
+                                    m.setLatLng(lastStop ? [lastStop.stop.lat, lastStop.stop.lon] : [0, 0]);
+                                    
+                                })
+                                .catch(err => {})
+                        }
+                        
+                    } else {
+                        
+                        const m = ghostMarkers.get(vehInternalRef);
+                        
+                        const markerText = m?.getElement()?.querySelector('.inner span');
+                        const el = m?.getElement();
+                        if (markerText && markerText instanceof HTMLElement) {
+                            markerText.style.transform = `rotate(-${0}deg)`;
+                            markerText.textContent = `${headsign}`;
+                        }
+                        
+                        const trip = ghostTrips.get(vehInternalRef);
+                        if (trip) {
+                            const lastStop = getGhostTripLastStop(trip);
+                            m?.setLatLng(lastStop ? [lastStop.stop.lat, lastStop.stop.lon] : [0, 0]);
+                        }
+                        
+                    }
+                    
+                }
+                
+            }
+            
             // remove markers of non-existing vehicles
             const currentVehicles = vehicles.map(veh => (veh as any).__id as string);
             const currentMarkers = [...vehicleMarkers.keys()];
@@ -542,7 +688,8 @@ export default function NysseMapNew(props: {
                 }
             }
             
-            toUpdate = setTimeout(() => updateVehicleMarkers(), 4000)
+            vehFetchCount++;
+            toUpdate = setTimeout(() => updateVehicleMarkers(), vehFetchCount == 1 ? 2000 : 4000)
             
         }
         

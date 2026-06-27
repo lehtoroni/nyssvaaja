@@ -13,6 +13,7 @@ import NodeCache from 'node-cache';
 import { IFeedInfo, IRealtimeVehicle } from './common/types';
 import { initRealtime } from './module/realtime';
 import { GTFS_ENDPOINTS, REALTIME_FEEDS_WALTTI } from './module/magic';
+import { getDayRemainingSeconds } from './module/util';
 
 const args = argsParser(process.argv);
 
@@ -101,6 +102,9 @@ function getFeeds() {
     const feedsOut: Record<string, string> = {};
     feedsAndAgencies.forEach((feeds, key) => {
         feeds.forEach((feedData, feedId) => {
+            if (feedId == 'HSL' && key.toUpperCase() != 'HSL') {
+                return;
+            }
             feedsOut[feedId] = key;
         })
     })
@@ -232,8 +236,9 @@ app.get('/api/getAllRoutes/:feed', asyncHandler(async (req, res) => {
         return;
     }
     
+    console.log(feed, feedEndpoint);
     const data = await nysseQuery(`{
-        routes(feeds: [${JSON.stringify(feed)}]) {
+        routes(feeds: [${JSON.stringify(feed)}], transportModes: [BUS, CABLE_CAR, FERRY, FUNICULAR, RAIL, SUBWAY, TRAM, TROLLEYBUS]) {
             gtfsId,
             shortName,
             mode,
@@ -242,6 +247,114 @@ app.get('/api/getAllRoutes/:feed', asyncHandler(async (req, res) => {
     }`, feedEndpoint);
     
     queryCache.set(req.path, data, 60*60);
+    
+    res.json(data);
+    return;
+    
+}));
+
+app.get('/api/getCurrentTrips/:feed', asyncHandler(async (req, res) => {
+    
+    let data: any = null;
+    
+    if (queryCache.has(req.path)) {
+        data = queryCache.get(req.path);
+    } else {
+        const feed = req.params.feed || 'tampere';
+        const feedEndpoint = endpoints.get(getFeeds()[feed]);
+        if (!isValidFeed(feed) || !feedEndpoint) {
+            res.status(400).json({ error: `Illegal feed '${feed}'` });
+            return;
+        }
+        
+        const dateString = JSON.stringify((new Date()).toLocaleDateString('se').split('-').join(''));
+        
+        data = await nysseQuery(`{
+            routes(feeds: [${JSON.stringify(feed)}]) {
+                gtfsId,
+                patterns {
+                    tripsForDate(serviceDate: ${dateString}) {
+                        routeShortName,
+                        route { gtfsId, mode },
+                        departureStoptime {
+                            serviceDay,
+                            scheduledDeparture,
+                            realtimeDeparture,
+                            realtime
+                        },
+                        arrivalStoptime {
+                            serviceDay,
+                            scheduledArrival
+                        },
+                        directionId
+                    }
+                }
+            }
+        }`, feedEndpoint);
+        
+        queryCache.set(req.path, data, getDayRemainingSeconds());
+    }
+    
+    const runningTrips = [];
+    for (const route of (data.data.routes || [])) {
+        for (const pattern of (route.patterns || [])) {
+            for (const trip of (pattern.tripsForDate || [])) {
+                
+                const tripStart = (trip.departureStoptime.serviceDay + trip.departureStoptime.scheduledDeparture)*1000;
+                const tripEnd = (trip.arrivalStoptime.serviceDay + trip.arrivalStoptime.scheduledArrival)*1000;
+                
+                if (Date.now() >= tripStart && Date.now() <= tripEnd) {
+                    runningTrips.push(trip);
+                }
+                
+            }
+        }
+    }
+    
+    res.json(runningTrips);
+    return;
+    
+}));
+
+app.get('/api/getTodaysTrips/:feed', asyncHandler(async (req, res) => {
+    
+    let data: any = null;
+    
+    if (queryCache.has(req.path)) {
+        data = queryCache.get(req.path);
+    } else {
+        const feed = req.params.feed || 'tampere';
+        const feedEndpoint = endpoints.get(getFeeds()[feed]);
+        if (!isValidFeed(feed) || !feedEndpoint) {
+            res.status(400).json({ error: `Illegal feed '${feed}'` });
+            return;
+        }
+        
+        const dateString = JSON.stringify((new Date()).toLocaleDateString('se').split('-').join(''));
+        
+        data = await nysseQuery(`{
+            routes(feeds: [${JSON.stringify(feed)}]) {
+                gtfsId,
+                patterns {
+                    tripsForDate(serviceDate: ${dateString}) {
+                        routeShortName,
+                        route { gtfsId },
+                        departureStoptime {
+                            serviceDay,
+                            scheduledDeparture
+                        },
+                        arrivalStoptime {
+                            serviceDay,
+                            scheduledArrival
+                        },
+                        directionId
+                    }
+                }
+            }
+        }`, feedEndpoint);
+        
+        queryCache.set(req.path, data, getDayRemainingSeconds());
+    }
     
     res.json(data);
     return;
@@ -408,6 +521,79 @@ app.post('/api/getRouteDetails/:feed', (req, res) => {
         .then(rawData => {
             const tripData = rawData.data?.fuzzyTrip ?? null;
             res.json(tripData);
+        })
+        .catch(err => {
+            console.error(err);
+            res.json({ error: `${err}` });
+        })
+})
+
+app.post('/api/getMultiRouteDetails/:feed', (req, res) => {
+    
+    if (!req.body
+        || !Array.isArray(req.body)
+        || req.body.length > 100) {
+        res.json({
+            error: `invalid body`
+        }).status(400);
+        return;
+    }
+    
+    const feed = req.params.feed || 'tampere';
+    const feedEndpoint = endpoints.get(getFeeds()[feed]);
+    if (!isValidFeed(feed) || !feedEndpoint) {
+        res.status(400).json({ error: `Illegal feed '${feed}'` });
+        return;
+    }
+    
+    //console.log(`fuzzyTrip(route: "${routeHeadsign}", direction: ${direction}, date: ${JSON.stringify(dateRef)}, time: ${timeRefSeconds})`);
+    
+    const q = `{
+        ${req.body.map((bodyRow, i) => {
+            
+            const routeHeadsign = `${bodyRow.routeHeadsign || ''}`;
+            const direction = bodyRow.direction ?? 0;
+            const dateRef = `${bodyRow.dateRef || ''}`;
+            const timeRef = `${bodyRow.timeRef || ''}`;
+            
+            if (!routeHeadsign || direction === null || direction === undefined || !dateRef || !timeRef) {
+                return '';
+            }
+            
+            const timeHours = parseInt(timeRef.substring(0, 2));
+            const timeMinutes = parseInt(timeRef.substring(2, 4));
+            const timeRefSeconds = timeHours*60*60 + timeMinutes*60;
+            
+            return `t_${i}: fuzzyTrip(route: "${routeHeadsign}", direction: ${direction}, date: ${JSON.stringify(dateRef)}, time: ${timeRefSeconds}) {
+                ...tripFields,
+                stoptimesForDate(serviceDate: ${JSON.stringify(dateRef.replace(/\-/gmi, ''))}) {
+                    ...stoptimeFields
+                }
+            }\n`;
+            
+        }).join('\n')}
+    }
+    fragment stoptimeFields on Stoptime {
+        stop {
+            gtfsId,
+            lat,
+            lon
+        },
+        serviceDay,
+        realtimeDeparture,
+        scheduledDeparture,
+        realtime
+    }
+    fragment tripFields on Trip {
+        tripShortName,
+        routeShortName,
+        gtfsId,
+        tripHeadsign
+    }`;
+    
+    nysseQuery(q, feedEndpoint)
+        .then(rawData => {
+            res.json(rawData);
         })
         .catch(err => {
             console.error(err);

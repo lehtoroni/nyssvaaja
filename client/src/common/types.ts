@@ -27,3 +27,33 @@ export type IRealtimeVehicle = {
     timestamp: number
 };
 
+export type IRunningTrip = {
+    routeShortName: string,
+    route: { gtfsId: string, mode: string },
+    departureStoptime: {
+        realtimeDeparture: number,
+        realtime: boolean,
+        serviceDay: number,
+        scheduledDeparture: number
+    },
+    arrivalStoptime: {
+        serviceDay: number,
+        scheduledArrival: number
+    },
+    directionId: number
+};
+
+export type IGhostTrip = {
+    tripShortName: string,
+    routeShortName: string,
+    gtfsId: string,
+    tripHeadsign: string,
+    //geometry: [number, number][],
+    stoptimesForDate: {
+        stop: { gtfsId: string, lat: number, lon: number },
+        serviceDay: number,
+        realtimeDeparture: number,
+        scheduledDeparture: number,
+        realtime: boolean
+    }[]
+};
