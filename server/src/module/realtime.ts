@@ -78,6 +78,7 @@ export function initRealtime(props: {
         
         if (Date.now() - lastMessageCounter > 1000*60*60*6) {
             console.log(`[mqtt] Processed ${messageCount} MQTT messages in the last 6 hours.`);
+            lastMessageCounter = Date.now();
             messageCount = 0;
         }
         
