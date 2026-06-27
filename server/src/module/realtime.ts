@@ -8,10 +8,14 @@ import { gtfsEntityToGeneral } from './util';
 export function initRealtime(props: {
     VERSION: string,
     apiKey: string,
-    walttiKey: string
+    walttiKey: string,
+    args: any
 }) {
     
     const { VERSION, apiKey, walttiKey } = props;
+    const NEVER_UNLOAD_FEEDS: string[] = `${props.args.keepAliveFeeds || ''}`.split(',').filter(x => !!x);
+    
+    console.log(`[mqtt] Following MQTT feed ids will never be unloaded: ${NEVER_UNLOAD_FEEDS.join(', ')}`)
     
     const clientIdRandom = `${crypto.randomUUID().split('-')[0]}_${Date.now().toString(36)}`;
     
@@ -104,7 +108,11 @@ export function initRealtime(props: {
             // unsubscribe from unnecessary topics
             if (!lastRealtimeAsked.get(feedId)
                 || Date.now() - (lastRealtimeAsked.get(feedId) ?? 0) > FEED_UNSUBSCRIBE_TIME) {
-            
+                    
+                if (NEVER_UNLOAD_FEEDS.includes(feedId)) {
+                    continue;
+                }
+                
                 console.log(`[mqtt] Unsubscribing from '${feedId}'`);
                 await mqttClient.unsubscribeAsync(`/gtfsrt/vp/${feedId}/#`);
                 

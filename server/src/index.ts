@@ -41,7 +41,7 @@ const queryCache = new NodeCache({
     maxKeys: 1000
 });
 
-const realtime = initRealtime({ VERSION, apiKey, walttiKey });
+const realtime = initRealtime({ VERSION, apiKey, walttiKey, args });
 
 async function updateDaily() {
     
