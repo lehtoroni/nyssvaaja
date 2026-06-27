@@ -70,6 +70,14 @@ The API key can also be placed in the file `apikey.txt` in the cwd of the server
 
 It is highly recommended to run the app behind a reverse proxy.
 
+## CLI flags
+```
+  --port=9999             Web server binding port
+  --apiKey=...            Digitransit API key
+  --trustProxy=X          Trust X levels of proxies
+  --keepAliveFeeds=A,B,C  Force subscribed MQTT realtime feeds to stay subscribed
+```
+
 ## License
 MIT
 

@@ -27,8 +27,6 @@ const VERSION = isBundled
 
 const port = args.port ?? 9999;
 const apiKey = args.apiKey ?? (fs.existsSync(apiKeyFile) ? fs.readFileSync(apiKeyFile, 'utf8').trim() : null);
-const walttiKeyRaw = args.walttiKey ?? (fs.existsSync(walttiKeyFile) ? fs.readFileSync(walttiKeyFile, 'utf8').trim() : null);
-const walttiKey = Buffer.from(walttiKeyRaw, 'utf8').toString('base64');
 
 const endpoints = new Map<string, string>(Object.entries(GTFS_ENDPOINTS));
 
@@ -41,7 +39,7 @@ const queryCache = new NodeCache({
     maxKeys: 1000
 });
 
-const realtime = initRealtime({ VERSION, apiKey, walttiKey, args });
+const realtime = initRealtime({ VERSION, apiKey, args });
 
 async function updateDaily() {
     
@@ -117,15 +115,13 @@ if (!apiKey || apiKey == '') {
     throw new Error(`Please provide an API key using --apiKey=... or using apikey.txt in the root folder`);
 }
 
-if (!walttiKeyRaw || walttiKeyRaw == '') {
-    throw new Error(`Please provide a Waltti id:secret pair using --walttiKey=clientid:secret or using waltti.txt in the root folder`);
-}
-
 console.log(`Nyssvääjä² v${VERSION} (c) Roni Lehto 2026`);
 
 const app = express();
 
-app.set('trust proxy', 1);
+if (args.trustProxy && typeof args.trustProxy === 'number') {
+    app.set('trust proxy', args.trustProxy);
+}
 app.use(bodyParser.json({ type: 'application/json' }));
 app.use(bodyParser.text({ type: '*/*' }));
 

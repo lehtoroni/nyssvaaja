@@ -8,11 +8,10 @@ import { gtfsEntityToGeneral } from './util';
 export function initRealtime(props: {
     VERSION: string,
     apiKey: string,
-    walttiKey: string,
     args: any
 }) {
     
-    const { VERSION, apiKey, walttiKey } = props;
+    const { VERSION, apiKey } = props;
     const NEVER_UNLOAD_FEEDS: string[] = `${props.args.keepAliveFeeds || ''}`.split(',').filter(x => !!x);
     
     console.log(`[mqtt] Following MQTT feed ids will never be unloaded: ${NEVER_UNLOAD_FEEDS.join(', ')}`)
