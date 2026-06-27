@@ -8,12 +8,15 @@ export const VEHICLE_ICON: Record<string, string> = {
     'TRAM': '🚋'
 };
 
+export type TripShowTrigger = (routeId: string, direction: number | string, dateRef: string | number, timeRef: string | number, feed: string) => any;
+
 export default function Monitor(props: {
     feed: string,
     stops: string[],
     interval: number,
     isEditing: boolean,
-    onEdit: (n: number, command: 'delete' | 'up' | 'down') => any
+    onEdit: (n: number, command: 'delete' | 'up' | 'down') => any,
+    onShowTrip?: TripShowTrigger
 }) {
     
     const { isEditing } = props;
@@ -80,7 +83,7 @@ export default function Monitor(props: {
                     </button>
                 </div>}
                 {stopData[stopId]
-                    ? <NysseStop data={stopData[stopId]} isEditing={isEditing}/>
+                    ? <NysseStop data={stopData[stopId]} isEditing={isEditing} onShowTrip={props.onShowTrip} feed={props.feed}/>
                     : <div className='text-center my-4'>
                         <div className='nyssvaaja-spinner'>🚍️</div>
                     </div>}
@@ -89,7 +92,7 @@ export default function Monitor(props: {
     </div>;
 }
 
-export function SingleNysseStop(props: { stopId: string, feed: string }) {
+export function SingleNysseStop(props: { stopId: string, feed: string, onShowTrip?: TripShowTrigger }) {
     
     const [stopData, setStopData] = useState<IStopRealtimeData[]>();
     
@@ -121,13 +124,19 @@ export function SingleNysseStop(props: { stopId: string, feed: string }) {
     
     return <Fragment>
         {stopData?.map((st, i) =>
-            <NysseStop key={`${st.gtfsId}_${i}`} data={st} isEditing={false}/>
+            <NysseStop
+                key={`${st.gtfsId}_${i}`}
+                data={st}
+                isEditing={false}
+                feed={props.feed}
+                onShowTrip={props.onShowTrip}
+                />
         )}
     </Fragment>;
     
 }
 
-export function NysseStop(props: { data: IStopRealtimeData, showInitial?: number, isEditing: boolean }) {
+export function NysseStop(props: { data: IStopRealtimeData, showInitial?: number, isEditing: boolean, onShowTrip?: TripShowTrigger, feed: string }) {
     
     const showInitial = props.showInitial ?? 5;
     const canBeExpanded = props.data.stoptimesWithoutPatterns.length > showInitial;
@@ -168,7 +177,20 @@ export function NysseStop(props: { data: IStopRealtimeData, showInitial?: number
                             .filter((t, n) => isExpanded || (n < showInitial))
                             .map(stopTime =>  
                                 <Fragment>
-                                    <tr>
+                                    <tr data-clickable={`${!!props.onShowTrip}`}
+                                        onClick={e => {
+                                            e.preventDefault();
+                                            if (props.onShowTrip) {
+                                                props.onShowTrip(
+                                                    stopTime.trip?.route?.gtfsId ?? '', 
+                                                    stopTime.trip?.directionId ?? -1,
+                                                    stopTime.trip?.departureStoptime.serviceDay ?? '',
+                                                    `${stopTime.trip?.departureStoptime.scheduledDeparture ?? 0}`,
+                                                    props.feed
+                                                );
+                                            }
+                                        }}
+                                        >
                                         <td style={{ width: '3em;' }}><span className='x-headsign'>{stopTime.trip?.route?.shortName ?? '?'}</span></td>
                                         <td>
                                             {stopTime.headsign ?? '?'}

@@ -257,7 +257,32 @@ export default function NysseMapNew(props: {
                                 content.style.width = '';
                             }
                             render(<Fragment>
-                                <SingleNysseStop feed={props.feed} stopId={stop.gtfsId}/>
+                                <SingleNysseStop
+                                    feed={props.feed}
+                                    stopId={stop.gtfsId}
+                                    onShowTrip={(routeId, dir, dateRef, timeref, feed) => {
+                                        
+                                        const tzOffset = (new Date()).getTimezoneOffset() * 60000;
+                                        const vehD = new Date(parseInt(dateRef as any)*1000 + parseInt(timeref as any)*1000 - tzOffset);
+                                        const vehInternalRef = JSON.stringify([
+                                            routeId.split(':').at(-1),
+                                            parseInt(dir as any),
+                                            vehD.toISOString().split('T')[0],
+                                            vehD.toISOString().split('T')[1].slice(0, -5),
+                                            feed
+                                        ]);
+                                        
+                                        const m = vehicleMarkers.get(vehInternalRef);
+                                        if (m) {
+                                            console.log(m);
+                                            setTimeout(() => {
+                                                m.fire('click');
+                                                map.flyTo(m.getLatLng());
+                                            }, 1);
+                                        }
+                                        
+                                    }}
+                                    />
                             </Fragment>, popupInner);
                         }
                         
@@ -312,7 +337,13 @@ export default function NysseMapNew(props: {
                     ? (vehRoute?.shortName ?? '???')
                     : veh.headsign;
                 
-                if (!vehicleMarkers.has(veh.vehicleRef)) {
+                const vehInternalRef = JSON.stringify([fuzzyHeadsign, parseInt(veh.direction), veh.tripDate, veh.tripTime, props.feed]);
+                //console.log(vehInternalRef);
+                
+                // @ts-ignore
+                veh.__id = vehInternalRef;
+                
+                if (!vehicleMarkers.has(vehInternalRef)) {
                     
                     const m = L.marker(
                         veh.location,
@@ -485,11 +516,11 @@ export default function NysseMapNew(props: {
                     });
                     
                     m.addTo(map);
-                    vehicleMarkers.set(veh.vehicleRef, m);
+                    vehicleMarkers.set(vehInternalRef, m);
                     
                 }
                 
-                const m = vehicleMarkers.get(veh.vehicleRef);
+                const m = vehicleMarkers.get(vehInternalRef);
                 m?.setLatLng(veh.location);
                 m?.setRotationAngle(veh.bearing);
                     
@@ -502,7 +533,7 @@ export default function NysseMapNew(props: {
             }
             
             // remove markers of non-existing vehicles
-            const currentVehicles = vehicles.map(veh => veh.vehicleRef);
+            const currentVehicles = vehicles.map(veh => (veh as any).__id as string);
             const currentMarkers = [...vehicleMarkers.keys()];
             for (const key of currentMarkers) {
                 if (!currentVehicles.includes(key)) {

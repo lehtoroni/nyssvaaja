@@ -55,6 +55,11 @@ export interface IStopRealtimeData {
         realtimeArrival: number;
         realtimeDeparture: number;
         trip?: {
+            directionId: number,
+            departureStoptime: {
+                serviceDay: string,
+                scheduledDeparture: number
+            },
             route?: {
                 gtfsId?: string;
                 shortName?: string;

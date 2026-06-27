@@ -310,6 +310,11 @@ app.post('/api/getStopsData/:feed', (req, res) => {
             realtimeArrival
             realtimeDeparture
             trip {
+                directionId
+                departureStoptime {
+                    serviceDay
+                    scheduledDeparture
+                }
                 alerts {
                     ...alertFields
                 }
