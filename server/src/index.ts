@@ -232,7 +232,6 @@ app.get('/api/getAllRoutes/:feed', asyncHandler(async (req, res) => {
         return;
     }
     
-    console.log(feed, feedEndpoint);
     const data = await nysseQuery(`{
         routes(feeds: [${JSON.stringify(feed)}], transportModes: [BUS, CABLE_CAR, FERRY, FUNICULAR, RAIL, SUBWAY, TRAM, TROLLEYBUS]) {
             gtfsId,

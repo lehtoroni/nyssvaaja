@@ -160,7 +160,7 @@ export function NysseStop(props: { data: IStopRealtimeData, showInitial?: number
                     .filter((al, i) => al.effectiveEndDate*1000 >= Date.now() )
                     .map((al, i) =>
                         <div className='alert alert-danger p-2'>
-                            <p className='mb-1'>🚨 <b>{al.alertHeaderText}</b></p>
+                            <p className='m-0 mb-1'>🚨 <b>{al.alertHeaderText}</b></p>
                             <span style={{ fontSize: '90%', lineHeight: '110%', display: 'inline-block' }}>{al.alertDescriptionText}</span>
                         </div>
                     )}
