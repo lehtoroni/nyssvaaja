@@ -1,9 +1,6 @@
 import { LatLngTuple } from 'leaflet';
 import { h } from 'preact';
-import { IGhostTrip } from 'src/common/types';
-
-export type ArrayElement<ArrayType extends readonly unknown[]> = 
-  ArrayType extends readonly (infer ElementType)[] ? ElementType : never;
+import { ArrayElement, IGhostTrip } from 'src/common/types';
 
 const STORAGE_VERSION = `3`;
 export const FEED_ID = `tampere`;

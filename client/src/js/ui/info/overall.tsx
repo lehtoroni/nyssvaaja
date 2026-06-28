@@ -1,7 +1,7 @@
 import { Fragment, h } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
-import { IRealtimeVehicle } from '../newmap/map';
 import { RemixIcon } from '../../util';
+import { IRealtimeVehicle } from '../../../common/types';
 
 
 

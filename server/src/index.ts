@@ -4,15 +4,15 @@ import path from 'path';
 // @ts-ignore
 import argsParser from 'args-parser';
 
+import bodyParser from 'body-parser';
 import express from 'express';
 import asyncHandler from 'express-async-handler';
-import bodyParser from 'body-parser';
 import rateLimit from 'express-rate-limit';
 import NodeCache from 'node-cache';
 
-import { IFeedInfo, IRealtimeVehicle } from './common/types';
-import { initRealtime } from './module/realtime';
+import { IFeedInfo } from './common/types';
 import { GTFS_ENDPOINTS, REALTIME_FEEDS_WALTTI } from './module/magic';
+import { initRealtime } from './module/realtime';
 import { getDayRemainingSeconds } from './module/util';
 
 const args = argsParser(process.argv);

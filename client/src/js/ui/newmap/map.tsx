@@ -14,7 +14,7 @@ import { IStopData } from '../../app';
 import { NysseStop, SingleNysseStop } from '../Monitor';
 import { LinePicker } from './linepicker';
 import { BusInstanceMonitor } from './businstance';
-import { IGhostTrip, IRunningTrip } from 'src/common/types';
+import { IGhostTrip, IRealtimeVehicle, IRunningTrip } from 'src/common/types';
 
 let __map: LeafletMap | null = null;
 let __mapState: {
@@ -394,7 +394,7 @@ export default function NysseMapNew(props: {
                 const fuzzyHeadsign = routeId;
                 const headsign = veh.walttiRouteId
                     ? (vehRoute?.shortName ?? '???')
-                    : veh.headsign;
+                    : (veh.headsign || '');
                 
                 if (shownRoutes && !(shownRoutes.includes(headsign) || shownRoutes.includes(vehRoute?.gtfsId?.split(':')?.at(-1) ?? ''))) {
                     continue; // hidden route!
@@ -404,7 +404,7 @@ export default function NysseMapNew(props: {
                     console.warn(`unknown route? ${props.feed}:${routeId}`);
                 }
                 
-                const vehInternalRef = JSON.stringify([fuzzyHeadsign, parseInt(veh.direction), veh.tripDate, veh.tripTime, props.feed]);
+                const vehInternalRef = JSON.stringify([fuzzyHeadsign, parseInt(veh.direction as any), veh.tripDate, veh.tripTime, props.feed]);
                 //console.log(vehInternalRef);
                 
                 // @ts-ignore
@@ -439,7 +439,7 @@ export default function NysseMapNew(props: {
                         let tripUpdateTimeout: any = null;
                         
                         const updateRouteInfo = (isInitial: boolean) => {
-                            findRouteDetails(fuzzyHeadsign, parseInt(veh.direction), veh.tripDate, veh.tripTime, props.feed)
+                            findRouteDetails(fuzzyHeadsign, parseInt(veh.direction as any), veh.tripDate, veh.tripTime, props.feed)
                                 .then(trip => {
                                     
                                     // stupid hack for delay calculation
@@ -819,18 +819,4 @@ export default function NysseMapNew(props: {
     
 }
 
-export interface IRealtimeVehicle {
-    headsign: string,
-    direction: string,
-    origin: string,
-    destination: string,
-    location: [number, number],
-    bearing: number,
-    delay: number,
-    vehicleRef: string,
-    tripDate: string,
-    tripTime: string,
-    
-    licensePlate?: string,
-    walttiRouteId?: string
-}
+

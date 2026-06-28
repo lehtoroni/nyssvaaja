@@ -5,7 +5,10 @@ import { getStopData, getTimeString, getDueMinutes, getStopsData, RemixIcon } fr
 
 export const VEHICLE_ICON: Record<string, string> = {
     'BUS': '🚌',
-    'TRAM': '🚋'
+    'TRAM': '🚋',
+    'RAIL': '🚂',
+    'SUBWAY': '🚇️',
+    'FERRY': '⛴️'
 };
 
 export type TripShowTrigger = (routeId: string, direction: number | string, dateRef: string | number, timeRef: string | number, feed: string) => any;

@@ -1,4 +1,7 @@
 
+export type ArrayElement<ArrayType extends readonly unknown[]> = 
+  ArrayType extends readonly (infer ElementType)[] ? ElementType : never;
+
 export type IFeedInfo = {
     feedId: string,
     agencies: {
@@ -13,7 +16,7 @@ export type ILatLon = [number, number];
 export type IRealtimeVehicle = {
     headsign?: string,
     direction: number,
-    origin: string,
+    origin: string, 
     destination: string,
     location: ILatLon,
     bearing: number,
