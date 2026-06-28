@@ -1,12 +1,14 @@
 import { Fragment, h, render } from 'preact';
 
-import L, { DivIcon, divIcon, icon, LatLngExpression, Map as LeafletMap, Marker, Polyline, popup } from 'leaflet';
+import L, { DivIcon, divIcon, icon, LatLngExpression, Map as LeafletMap, maplibreGL, Marker, Polyline, popup } from 'leaflet';
 import { Dispatch, StateUpdater, useEffect, useRef, useState } from 'preact/hooks';
 import { signal } from '@preact/signals';
 
 import 'leaflet-rotatedmarker';
 import 'leaflet-doubletapdrag';
 import 'leaflet-doubletapdragzoom';
+import '@maplibre/maplibre-gl-leaflet';
+
 import { encodeHTML, findRouteDetails, getAllStops, getGhostTripLastStop, IGenericRoute, lazyFindRouteDetails, RemixIcon } from '../../util';
 import { IStopData } from '../../app';
 import { NysseStop, SingleNysseStop } from '../Monitor';
@@ -16,7 +18,7 @@ import { IGhostTrip, IRunningTrip } from 'src/common/types';
 
 let __map: LeafletMap | null = null;
 let __mapState: {
-    filterLines: (gtfsIds: string[] | null) => any,
+    filterLines: (gtfsIds: string[] | null, callUpdate?: boolean) => any,
     jumpToGps: () => any
 } | null = null;
 
@@ -195,9 +197,16 @@ export default function NysseMapNew(props: {
             center: mapCenter
         });
         
+        /*
         map.addLayer(L.tileLayer(`https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`, {
             attribution: `&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Data: <a href="https://digitransit.fi/en/developers/">Digitransit</a>`
         }));
+        */
+        
+        const glLayer = maplibreGL({
+            style: 'https://tiles.openfreemap.org/styles/bright'
+        });
+        glLayer.addTo(map);
         
         let hadInitialGps = false;
         let userHasMoved = false;
@@ -348,11 +357,15 @@ export default function NysseMapNew(props: {
         
         let shownRoutes: string[] | null = null;
         
-        async function updateVehicleMarkers() {
+        async function updateVehicleMarkers(callUpdate: boolean = true) {
+            
+            if (vehFetchCount == 0) {
+                console.log('doing initial filtering...');
+                __mapState?.filterLines(props.filteredLines, false);
+            }
             
             const x = await fetch(`/api/realtime/${encodeURIComponent(props.feed)}?t=${Date.now()}`);
-            const vehicles: IRealtimeVehicle[] = (await x.json())
-                .filter((v: IRealtimeVehicle) => !shownRoutes || shownRoutes.includes(v.headsign));
+            const vehicles: IRealtimeVehicle[] = (await x.json());
             
             let supposedTrips: IRunningTrip[] = [];
             if (vehFetchCount > 1) {
@@ -374,6 +387,10 @@ export default function NysseMapNew(props: {
                 const headsign = veh.walttiRouteId
                     ? (vehRoute?.shortName ?? '???')
                     : veh.headsign;
+                
+                if (shownRoutes && !(shownRoutes.includes(headsign) || shownRoutes.includes(vehRoute?.gtfsId?.split(':')?.at(-1) ?? ''))) {
+                    continue; // hidden route!
+                }
                 
                 if (!vehRoute) {
                     console.warn(`unknown route? ${props.feed}:${routeId}`);
@@ -595,6 +612,13 @@ export default function NysseMapNew(props: {
                 
                 if (!vehicleMarkers.get(vehInternalRef)) {
                     
+                    const vehRoute = allRoutes[trip.route.gtfsId];
+                    const headsign = vehRoute?.shortName ?? '';
+                    
+                    if (shownRoutes && !(shownRoutes.includes(headsign) || shownRoutes.includes(trip.route.gtfsId.split(':')?.at(-1) ?? ''))) {
+                        continue; // hidden route!
+                    }
+                    
                     if (trip.departureStoptime.realtime
                         && trip.departureStoptime.realtimeDeparture > trip.departureStoptime.scheduledDeparture) {
                         console.log(`"ghost" ${vehInternalRef} is just late, probably`);
@@ -602,8 +626,6 @@ export default function NysseMapNew(props: {
                     }
                     
                     console.log(`ghost bus: ${vehInternalRef}`);
-                    const vehRoute = allRoutes[trip.route.gtfsId];
-                    const headsign = vehRoute?.shortName ?? '';
                     
                     if (!ghostMarkers.get(vehInternalRef)) {
                         
@@ -689,7 +711,9 @@ export default function NysseMapNew(props: {
             }
             
             vehFetchCount++;
-            toUpdate = setTimeout(() => updateVehicleMarkers(), vehFetchCount == 1 ? 2000 : 4000)
+            if (callUpdate) {
+                toUpdate = setTimeout(() => updateVehicleMarkers(), vehFetchCount == 1 ? 2000 : 4000)
+            }
             
         }
         
@@ -697,14 +721,16 @@ export default function NysseMapNew(props: {
         
         __map = map;
         __mapState = {
-            filterLines: (ids: string[] | null) => {
+            filterLines: (ids: string[] | null, callUpdate: boolean = true) => {
                 
                 shownRoutes = ids
                     ? ids.map(i => i.split(':').slice(-1).join(''))
                     : null;
                 
-                clearTimeout(toUpdate);
-                toUpdate = setTimeout(() => updateVehicleMarkers(), 0);
+                if (callUpdate) {
+                    clearTimeout(toUpdate);
+                    toUpdate = setTimeout(() => updateVehicleMarkers(false), 0);
+                }
                 
             },
             jumpToGps: () => {
