@@ -49,17 +49,22 @@ export default function AppInfo(props: { feed: string, setFeed: (toFeed: string)
                 
                 <hr/>
                 
-                <h2>1. Valitse pysäkit ja kartan linjat</h2>
+                <h2>Peruskäyttö</h2>
+                <p>&nbsp;</p>
+                <h3>0. Valitse alue</h3>
+                <p>Jos et ole Tamperelainen, valitse ensin info-välilehdeltä oma Digitransit-palvelualueesi. Esimerkiksi Helsingin data löytyy alueelta "HSL" ja Jyväskylän alueelta "LINKKI".</p>
+                
+                <p>&nbsp;</p>
+                <h3>1. Valitse pysäkit ja kartan linjat</h3>
                 <p>
                     Valitse Nyssvääjän monitorinäkymästä pysäkki tai useampi, jotka haluat näkyviin. Voit valita pysäkit listalta tai kartalta. Valitse halutessasi karttanäkymään linjasuodattimia.
                 </p>
                 <p>
-                    <img src='https://lehtodigital.fi/f/jj0Xb' className='nyssvaaja-info-img'/>
+                    <img src='https://lehtodigital.fi/f/jj0Xb' className='nyssvaaja-info-img' loading='lazy'/>
                 </p>
                 
-                <hr/>
-                
-                <h2>2. Talleta osoite</h2>
+                <p>&nbsp;</p>
+                <h3>2. Talleta osoite</h3>
                 <p>
                     <b>Nyssvääjä tallentaa tekemäsi valinnat sivun URL-osoitteeseen.</b>
                 </p>
@@ -70,14 +75,91 @@ export default function AppInfo(props: { feed: string, setFeed: (toFeed: string)
                     Voit lisätä Nyssvääjä-kuvakkeen kotinäyttöösi tai suosikkeihisi, jolloin pääset nopeasti monitoriisi.
                 </p>
                 <p>
-                    <img src='https://lehtodigital.fi/f/O7mll' className='nyssvaaja-info-img'/>
+                    <img src='https://lehtodigital.fi/f/O7mll' className='nyssvaaja-info-img' loading='lazy'/>
                 </p>
                 
-                <hr/>
+                <p>&nbsp;</p>
                 <h3>3. Muutoksia? Talleta osoite!</h3>
                 <p>
                     <b>Nyssvääjä tallettaa tekemäsi valinnat osoitteessa olevaan #-alkuiseen osaan.</b> Jos teet muutoksia, ne eivät tallennu kirjanmerkkiin tai kotinäytölle automaattisesti – sinun pitää lisätä kuvake tai kirjanmerkki uudelleen.
                 </p>
+                
+                <hr/>
+                
+                <h2>Kartan ominaisuudet</h2>
+                <h3>Värikoodit</h3>
+                <p>
+                    Kartalla näkyy valitusta alueesta riippuen eri liikennevälinetyyppejä. Ne on värikoodattu mielivaltaisesti Tamperelaisnäkökulmasta (bussit sinisiä, ratikat punaisia, junat vihreitä, jne.)
+                </p>
+                <p>
+                    Yleisesti ottaen karttaikonit, joilla on "piikki", näyttävät myös järjestelmien tarjoaman suuntatiedon. Junille, lautoille ja haamuille tätä tietoa ei suoraan ole saatavilla, joten ikonit ovat pyöreitä.
+                </p>
+                <table className='table table-sm table-dark'>
+                    <tbody>
+                        <tr>
+                            <td><img src={new URL('../../../assets/bussi.png', import.meta.url).href} loading='lazy' style={{ width: '100%', maxWidth: '32px' }}/></td>
+                            <td>Bussi</td>
+                        </tr>
+                        <tr>
+                            <td><img src={new URL('../../../assets/ratikkablob.png', import.meta.url).href} loading='lazy' style={{ width: '100%', maxWidth: '32px' }}/></td>
+                            <td>Ratikka</td>
+                        </tr>
+                        <tr>
+                            <td><img src={new URL('../../../assets/juna.png', import.meta.url).href} loading='lazy' style={{ width: '100%', maxWidth: '32px' }}/></td>
+                            <td>Juna</td>
+                        </tr>
+                        <tr>
+                            <td><img src={new URL('../../../assets/lautta.png', import.meta.url).href} loading='lazy' style={{ width: '100%', maxWidth: '32px' }}/></td>
+                            <td>Lautta</td>
+                        </tr>
+                        <tr>
+                            <td><img src={new URL('../../../assets/metro.png', import.meta.url).href} loading='lazy' style={{ width: '100%', maxWidth: '32px' }}/></td>
+                            <td>Metro</td>
+                        </tr>
+                        <tr>
+                            <td><img src={new URL('../../../assets/haamu.png', import.meta.url).href} loading='lazy' style={{ width: '100%', maxWidth: '32px' }}/></td>
+                            <td>Haamukulkuneuvo</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <p>&nbsp;</p>
+                <h3>Mysteeribussit eli "haamut"</h3>
+                <p>
+                    Harmaana näkyvät "mysteeribussit" eli "haamut" ovat vuoroja, joiden pitäisi taustajärjestelmän mukaan olla ajossa, mutta joiden sijaintia ei löydy seurantadatasta. Toistaiseksi nämä näkyvät vain aikataulun mukaisella "edellisellä pysäkillään" eikä niitä voi vielä klikata auki reittitietoja varten.
+                </p>
+                <p><i><b>Huomio huomio!</b></i> Nyssvääjä saattaa olla mysteeribussien osalta erehtyväinen, koska eri palvelualueiden välillä on omituisia eroja esim. järjestelmän sisäisten reittitunnuksien kesken. Luota siis aina ensisijaisesti johonkin viralliseen monitoriin, jos data näyttää oudolta...</p>
+                <img
+                    src='https://lehtodigital.fi/f/kyFL0'
+                    className='nyssvaaja-info-img'
+                    loading='lazy'
+                    />
+                
+                
+                <p>&nbsp;</p>
+                <h3>Näytettävien linjojen suodatus</h3>
+                <p>
+                    Kartalla näytettäviä linjoja voi suodattaa halujensa mukaan. Napauta oikeasta yläkulmasta suodatusnappia <RemixIcon icon='ri-filter-line'/> ja tee haluamasi valinnat.
+                </p>
+                <p>Pysäkkimonitoreiden näyttämiä linjoja ei toistaiseksi voi suodattaa...</p>
+                <img
+                    src='https://lehtodigital.fi/f/FJOch'
+                    className='nyssvaaja-info-img'
+                    loading='lazy'
+                    />
+                
+                
+                <p>&nbsp;</p>
+                <h3>Aikataulut kartalla ja bussiin hyppäys</h3>
+                <p>
+                    Pysäkit näkyvät kartalla pieninä palluroina. Napauttamalla palluraa saat auki kyseisen pysäkin monitorin. Tästä monitorinäkymästä voit myös napauttaa aikatauluriviä, jolloin kartta lennähtää kyseisen vuoron senhetkiseen sijaintiin (jos se tunnetaan).
+                </p>
+                <img
+                    src='https://lehtodigital.fi/f/dgUA0'
+                    className='nyssvaaja-info-img'
+                    loading='lazy'
+                    />
+                
                 
             </div>
         </Fragment>],
@@ -135,6 +217,7 @@ export default function AppInfo(props: { feed: string, setFeed: (toFeed: string)
                                 width: '100%',
                                 maxWidth: '96px'
                             }}
+                            loading='lazy'
                             />
                     </div>
                     <h3 className='text-center'>Nyssvääjä</h3>
