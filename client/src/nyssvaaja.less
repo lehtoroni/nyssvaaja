@@ -709,21 +709,29 @@ code {
             text-align: center;
             cursor: pointer;
             transition: ease-in-out .1s all;
+            border: 2px solid lime;
             
             &[data-active="false"] {
                 opacity: 0.5;
                 filter: saturate(50%);
                 transform: scale(0.85);
+                border: 2px solid transparent;
             }
             
             &[data-mode="BUS"] {
                 background-color: #20264d;
             }
             &[data-mode="TRAM"] {
-                background-color: #520f0f;
+                background-color: #4d2020;
             }
-            &[data-mode="TRAIN"] {
-                background-color: #036300;
+            &[data-mode="RAIL"] {
+                background-color: #00a80b;
+            }
+            &[data-mode="FERRY"] {
+                background-color: #4a008a;
+            }
+            &[data-mode="SUBWAY"] {
+                background-color: #a85c00;
             }
         }
     }
