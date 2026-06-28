@@ -22,10 +22,18 @@ let __mapState: {
     jumpToGps: () => any
 } | null = null;
 
-const screenHeight = signal(window.innerHeight);
-document.addEventListener('resize', () => {
-    screenHeight.value = window.innerHeight;
+const mapContainerHeight = signal(window.innerHeight-50);
+function recalcMapHeight() {
+    const c = document.querySelector('.x-floating-map-container');
+    if (c) {
+        mapContainerHeight.value = c.getBoundingClientRect().height;
+    } else {
+        mapContainerHeight.value = window.innerHeight-50;
+    }
     __map?.invalidateSize();
+}
+window.addEventListener('resize', () => {
+    recalcMapHeight();
 });
 
 const ICON_GPS = divIcon({
@@ -738,6 +746,8 @@ export default function NysseMapNew(props: {
             }
         };
         
+        recalcMapHeight();
+        
         return () => {
             
             clearTimeout(toUpdate);
@@ -766,7 +776,7 @@ export default function NysseMapNew(props: {
         >
         <div className='x-floating-map-container'>
             <div className='x-map' ref={refMapContainer} style={{
-                height: `${screenHeight.value}px`
+                height: `${mapContainerHeight.value}px`
             }}>
             </div>
         </div>
