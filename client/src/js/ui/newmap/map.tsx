@@ -14,13 +14,46 @@ import { IStopData } from '../../app';
 import { NysseStop, SingleNysseStop } from '../Monitor';
 import { LinePicker } from './linepicker';
 import { BusInstanceMonitor } from './businstance';
-import { IGhostTrip, IRealtimeVehicle, IRunningTrip } from 'src/common/types';
+import { IGhostTrip, IRealtimeVehicle, IRunningTrip } from '../../../common/types';
 
 let __map: LeafletMap | null = null;
 let __mapState: {
     filterLines: (gtfsIds: string[] | null, callUpdate?: boolean) => any,
     jumpToGps: () => any
 } | null = null;
+
+const FEED_CENTERS: Record<string, [number, number]> = {
+    "FOLI": [60.4518, 22.2666],
+    "FUNI": [62.2426, 25.7473],
+    "HSL": [60.1699, 24.9384],
+    "HSLlautta": [60.1699, 24.9384],
+    "Hameenlinna": [60.9963, 24.4643],
+    "Harma": [63.0333, 22.8500],
+    "IngvesSvanback": [60.1167, 19.9000],
+    "Joensuu": [62.6010, 29.7636],
+    "Kajaani": [64.2273, 27.7285],
+    "Korsisaari": [60.2055, 24.6559],
+    "Kotka": [60.4664, 26.9458],
+    "KotkaLautat": [60.4664, 26.9458],
+    "Kouvola": [60.8681, 26.7042],
+    "Kuopio": [62.8924, 27.6770],
+    "Lahti": [60.9827, 25.6615],
+    "Lappeenranta": [61.0583, 28.1887],
+    "LINKKI": [62.2426, 25.7473],
+    "MATKA": [63.0951, 21.6165],
+    "Mikkeli": [61.6886, 27.2723],
+    "OULU": [65.0121, 25.4651],
+    "PahkakankaanLiikenne": [64.2273, 27.7285],
+    "Pori": [61.4851, 21.7974],
+    "Raasepori": [59.9731, 23.4339],
+    "Rauma": [61.1290, 21.5113],
+    "Rovaniemi": [66.5039, 25.7294],
+    "Salo": [60.3833, 23.1333],
+    "Vaasa": [63.0951, 21.6165],
+    "VARELY": [60.4518, 22.2666],
+    "Viro": [59.4370, 24.7536],
+    "tampere": [61.4978, 23.7610]
+};
 
 const mapContainerHeight = signal(window.innerHeight-50);
 function recalcMapHeight() {
@@ -158,7 +191,7 @@ export default function NysseMapNew(props: {
 }) {
     
     const refMapContainer = useRef<HTMLDivElement>(null);
-    const [mapCenter, setMapCenter] = useState<[number, number]>([61.496634, 23.756104]);
+    const [mapCenter, setMapCenter] = useState<[number, number]>(FEED_CENTERS[props.feed] || [61.496634, 23.756104]);
     const [isLoaded, setLoaded] = useState<boolean>(false);
     
     const {filteredLines, setFilteredLines} = props;
@@ -247,6 +280,7 @@ export default function NysseMapNew(props: {
             
         }, error => {
             console.error(error);
+            hasJumpedGps = true;
         }, {
             enableHighAccuracy: true,
             maximumAge: 3000
@@ -265,10 +299,15 @@ export default function NysseMapNew(props: {
                 
                 const latC = rawData.reduce((p, c) => p+c.lat, 0)/rawData.length;
                 const lonC = rawData.reduce((p, c) => p+c.lon, 0)/rawData.length;
-                setMapCenter([latC, lonC]);
                 
-                if (!hasJumpedGps) {
-                    __map?.panTo([latC, lonC]);
+                if (FEED_CENTERS[props.feed]) {
+                    setMapCenter(FEED_CENTERS[props.feed]);
+                } else {
+                    setMapCenter([latC, lonC]);
+                }
+                
+                if (!hasJumpedGps && !userHasMoved && hadInitialGps) {
+                    //__map?.panTo([latC, lonC]);
                 }
                 
                 setLoaded(true);

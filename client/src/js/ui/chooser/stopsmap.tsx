@@ -6,8 +6,8 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import 'leaflet-rotatedmarker';
 import 'leaflet-doubletapdrag';
 import 'leaflet-doubletapdragzoom';
-import { encodeHTML, findRouteDetails, getAllStops, RemixIcon } from 'src/js/util';
-import { IStopData } from 'src/js/app';
+import { encodeHTML, findRouteDetails, getAllStops, RemixIcon } from '../../util';
+import { IStopData } from '../../app';
 
 let __map: LeafletMap | null = null;
 let __mapState: {

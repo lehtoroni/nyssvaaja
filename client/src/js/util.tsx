@@ -1,6 +1,6 @@
 import { LatLngTuple } from 'leaflet';
 import { h } from 'preact';
-import { ArrayElement, IGhostTrip } from 'src/common/types';
+import { ArrayElement, IGhostTrip } from '../common/types';
 
 const STORAGE_VERSION = `3`;
 export const FEED_ID = `tampere`;

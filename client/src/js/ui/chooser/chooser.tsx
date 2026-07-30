@@ -1,7 +1,7 @@
 import { Fragment, h } from 'preact';
 import { useEffect, useMemo, useState } from 'preact/hooks';
-import { IStopData } from 'src/js/app';
-import { getAllStops, RemixIcon } from 'src/js/util';
+import { IStopData } from '../../app';
+import { getAllStops, RemixIcon } from '../../util';
 import StopSelectorMap from './stopsmap';
 
 export default function StopChooser(props: {
