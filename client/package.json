@@ -1,6 +1,6 @@
 {
   "name": "nyssvaaja-client",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "description": "Nysse timetables using the Digitransit API",
   "scripts": {
     "postinstall": "(cd server && npm install); (parcel build src/index.html)",
